@@ -5,7 +5,6 @@ import { LogOut, GraduationCap, LayoutDashboard } from 'lucide-react'
 export default function Layout() {
   const { user, teacher, isTeacher, signOut } = useAuth()
   const location = useLocation()
-  const isTeacherArea = location.pathname.startsWith('/teacher') || location.pathname.startsWith('/admin')
   const isHome = location.pathname === '/'
 
   return (
