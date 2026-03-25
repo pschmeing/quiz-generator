@@ -1,0 +1,149 @@
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
+import { fetchTeacherQuizzes, fetchSessionCount } from '../../db'
+import type { PublishedQuiz, QuizStatus } from '../../types'
+import { Plus, FileText, Users, Calendar, Hash } from 'lucide-react'
+
+const tabs: { label: string; statuses: QuizStatus[] }[] = [
+  { label: 'Entwürfe', statuses: ['draft'] },
+  { label: 'Aktive Tests', statuses: ['published'] },
+  { label: 'Abgeschlossen', statuses: ['closed'] },
+  { label: 'Archiv', statuses: ['archived'] },
+]
+
+const statusConfig: Record<QuizStatus, { label: string; classes: string }> = {
+  draft: { label: 'Entwurf', classes: 'bg-gray-100 text-gray-700' },
+  published: { label: 'Aktiv', classes: 'bg-green-100 text-green-700' },
+  closed: { label: 'Geschlossen', classes: 'bg-orange-100 text-orange-700' },
+  archived: { label: 'Archiviert', classes: 'bg-slate-100 text-slate-700' },
+}
+
+export default function TeacherTests() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [quizzes, setQuizzes] = useState<PublishedQuiz[]>([])
+  const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({})
+  const [activeTab, setActiveTab] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) return
+    setLoading(true)
+    fetchTeacherQuizzes(user.id)
+      .then(async (data) => {
+        setQuizzes(data)
+        // Fetch session counts for published quizzes
+        const published = data.filter((q) => q.status === 'published')
+        const counts: Record<string, number> = {}
+        await Promise.all(
+          published.map(async (q) => {
+            const c = await fetchSessionCount(q.id)
+            counts[q.id] = c.total
+          })
+        )
+        setSessionCounts(counts)
+      })
+      .finally(() => setLoading(false))
+  }, [user])
+
+  const filtered = quizzes.filter((q) => tabs[activeTab].statuses.includes(q.status))
+
+  const emptyMessages: Record<number, string> = {
+    0: 'Keine Entwürfe vorhanden.',
+    1: 'Keine aktiven Tests.',
+    2: 'Keine abgeschlossenen Tests.',
+    3: 'Keine archivierten Tests.',
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Meine Tests</h1>
+        <Link
+          to="/teacher/new"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-primary-700 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Neuer Test
+        </Link>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-gray-200 mb-6">
+        {tabs.map((tab, i) => (
+          <button
+            key={tab.label}
+            onClick={() => setActiveTab(i)}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === i
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-12 text-center">
+          <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+          <p className="text-gray-500">{emptyMessages[activeTab]}</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filtered.map((quiz) => {
+            const cfg = statusConfig[quiz.status]
+            return (
+              <button
+                key={quiz.id}
+                onClick={() => navigate(`/teacher/quiz/${quiz.id}`)}
+                className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-5 text-left hover:shadow-xl transition-shadow w-full"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">
+                        {quiz.title}
+                      </h3>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.classes}`}>
+                        {cfg.label}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                      <span className="inline-flex items-center gap-1.5">
+                        <FileText className="h-4 w-4" />
+                        {quiz.questions.length} Fragen
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Hash className="h-4 w-4" />
+                        <span className="font-mono">{quiz.access_code}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(quiz.created_at).toLocaleDateString('de-DE')}
+                      </span>
+                      {quiz.status === 'published' && sessionCounts[quiz.id] !== undefined && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Users className="h-4 w-4" />
+                          {sessionCounts[quiz.id]} Teilnehmer
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

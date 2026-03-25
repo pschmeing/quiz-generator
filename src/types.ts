@@ -1,13 +1,9 @@
 export interface QuizQuestion {
   id: number
   question: string
-  options: {
-    A: string
-    B: string
-    C: string
-    D: string
-  }
-  correct: 'A' | 'B' | 'C' | 'D'
+  options: Record<string, string>
+  correct: string | string[]
+  type: 'single' | 'multiple'
   explanation: string
 }
 
@@ -18,11 +14,15 @@ export interface Quiz {
 
 export type Difficulty = 'Einfach' | 'Mittel' | 'Schwer'
 export type Audience = 'Berufskolleg' | 'Gymnasium' | 'Universität'
+export type QuizStatus = 'draft' | 'published' | 'closed' | 'archived'
 
 export interface QuizConfig {
   topic: string
   difficulty?: Difficulty
   audience?: Audience
+  questionCount?: number
+  optionCount?: number
+  defaultType?: 'single' | 'multiple'
 }
 
 export interface PublishedQuiz {
@@ -30,6 +30,8 @@ export interface PublishedQuiz {
   title: string
   questions: QuizQuestion[]
   access_code: string
+  status: QuizStatus
+  created_by: string | null
   created_at: string
 }
 
@@ -37,6 +39,7 @@ export interface QuizSession {
   id: string
   quiz_id: string
   student_name: string
+  student_email?: string
   score: number
   total: number
   answers: StudentAnswer[]
@@ -45,7 +48,7 @@ export interface QuizSession {
 
 export interface StudentAnswer {
   question_id: number
-  selected: string
-  correct: string
+  selected: string | string[]
+  correct: string | string[]
   is_correct: boolean
 }
