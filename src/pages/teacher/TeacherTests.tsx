@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { fetchTeacherQuizzes, fetchSessionCount, fetchSubjects, fetchClasses } from '../../db'
 import type { PublishedQuiz, QuizStatus, Subject, SchoolClass } from '../../types'
-import { Plus, FileText, Users, Calendar, Hash, BookOpen, GraduationCap, Filter } from 'lucide-react'
+import { Plus, FileText, Users, Calendar, Hash, BookOpen, GraduationCap } from 'lucide-react'
 
 const tabs: { label: string; statuses: QuizStatus[] }[] = [
   { label: 'Entwürfe', statuses: ['draft'] },
