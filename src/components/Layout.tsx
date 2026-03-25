@@ -52,14 +52,14 @@ export default function Layout() {
                   <LogOut className="w-5 h-5" />
                 </button>
               </div>
-            ) : !isHome ? (
+            ) : (
               <Link
-                to="/login"
+                to={isHome ? '/login' : '/'}
                 className="px-3 sm:px-4 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                Anmelden
+                {isHome ? 'Anmelden' : 'Test beitreten'}
               </Link>
-            ) : null}
+            )}
           </nav>
         </div>
       </header>
