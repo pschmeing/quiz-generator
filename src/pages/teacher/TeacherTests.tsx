@@ -73,7 +73,7 @@ export default function TeacherTests() {
   }
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Meine Tests</h1>
@@ -166,19 +166,18 @@ export default function TeacherTests() {
               <button
                 key={quiz.id}
                 onClick={() => navigate(`/teacher/quiz/${quiz.id}`)}
-                className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-5 text-left hover:shadow-xl transition-shadow w-full"
+                className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-4 sm:p-5 text-left hover:shadow-xl transition-shadow w-full overflow-hidden"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">
-                        {quiz.title}
-                      </h3>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.classes}`}>
-                        {cfg.label}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 break-words">
+                      {quiz.title}
+                    </h3>
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${cfg.classes}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
                       <span className="inline-flex items-center gap-1.5">
                         <FileText className="h-4 w-4" />
                         {quiz.questions.length} Fragen
@@ -207,7 +206,6 @@ export default function TeacherTests() {
                           {sessionCounts[quiz.id]} Teilnehmer
                         </span>
                       )}
-                    </div>
                   </div>
                 </div>
               </button>

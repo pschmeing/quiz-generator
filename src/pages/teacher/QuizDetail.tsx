@@ -263,13 +263,13 @@ export default function QuizDetail() {
       )}
 
       {/* Action buttons */}
-      <div className="flex flex-wrap gap-2 sm:gap-3 mb-8">
+      <div className="flex flex-wrap gap-2 mb-8">
         {quiz.status === 'published' && (
           <>
             <button
               onClick={handleRevertToDraft}
               disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
               <RotateCcw className="h-4 w-4" />
               Zurück zu Entwurf
@@ -277,20 +277,20 @@ export default function QuizDetail() {
             <button
               onClick={handleClose}
               disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-warning bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-warning bg-amber-50 px-3 py-2 text-xs sm:text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors"
             >
               <Lock className="h-4 w-4" />
               Test schließen
             </button>
             <button
               onClick={handleCopyLink}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Copy className="h-4 w-4" />
               {copied ? 'Kopiert!' : 'Beitrittslink kopieren'}
             </button>
-            <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 sm:px-4 py-2.5 text-sm font-mono text-gray-700">
-              Code: {quiz.access_code}
+            <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-mono text-gray-700">
+              {quiz.access_code}
             </span>
           </>
         )}
@@ -299,7 +299,7 @@ export default function QuizDetail() {
             <button
               onClick={handleRevertToDraft}
               disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
               <RotateCcw className="h-4 w-4" />
               Zurück zu Entwurf
@@ -307,14 +307,14 @@ export default function QuizDetail() {
             <button
               onClick={handleArchive}
               disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
               <Archive className="h-4 w-4" />
               Archivieren
             </button>
             <button
               onClick={handleExportCSV}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Download className="h-4 w-4" />
               Export CSV
@@ -322,7 +322,7 @@ export default function QuizDetail() {
             <Link
               to="/teacher/new"
               state={{ quiz }}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <RefreshCw className="h-4 w-4" />
               Ähnlichen Test erstellen
@@ -333,7 +333,7 @@ export default function QuizDetail() {
           <>
             <Link
               to={`/teacher/quiz/${id}/edit`}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Edit className="h-4 w-4" />
               Bearbeiten
@@ -341,14 +341,14 @@ export default function QuizDetail() {
             <button
               onClick={handlePublish}
               disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-xs sm:text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
             >
               Veröffentlichen
             </button>
             <button
               onClick={handleDelete}
               disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
             >
               <Trash2 className="h-4 w-4" />
               Löschen
@@ -359,7 +359,7 @@ export default function QuizDetail() {
           <Link
             to="/teacher/new"
             state={{ quiz }}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Ähnlichen Test erstellen
@@ -368,14 +368,14 @@ export default function QuizDetail() {
         <button
           onClick={handleDuplicate}
           disabled={actionLoading}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
         >
           <Copy className="h-4 w-4" />
           Kopieren
         </button>
         <button
           onClick={handleShare}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
           <Share2 className="h-4 w-4" />
           Teilen
