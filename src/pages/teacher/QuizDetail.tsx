@@ -7,8 +7,11 @@ import {
   archiveQuiz,
   deleteQuiz,
   publishDraft,
+  revertToDraft,
+  duplicateQuiz,
 } from '../../db'
 import type { PublishedQuiz, QuizSession } from '../../types'
+import { useAuth } from '../../contexts/AuthContext'
 import {
   ArrowLeft,
   Edit,
@@ -20,6 +23,7 @@ import {
   Share2,
   Download,
   RefreshCw,
+  RotateCcw,
   Lock,
   ChevronDown,
   ChevronUp,
@@ -43,6 +47,7 @@ export default function QuizDetail() {
   const [actionLoading, setActionLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [expandedSession, setExpandedSession] = useState<string | null>(null)
+  const { user } = useAuth()
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -126,6 +131,30 @@ export default function QuizDetail() {
     setActionLoading(false)
   }
 
+  async function handleRevertToDraft() {
+    if (!id) return
+    const hasParticipants = sessions.length > 0
+    const message = hasParticipants
+      ? `Achtung: Dieser Test hat bereits ${sessions.length} Teilnehmer. Wenn du ihn zurück auf Entwurf setzt, können keine neuen Teilnahmen stattfinden und der Beitrittslink wird ungültig. Fortfahren?`
+      : 'Test zurück auf Entwurf setzen?'
+    if (!confirm(message)) return
+    setActionLoading(true)
+    await revertToDraft(id)
+    await loadData()
+    setActionLoading(false)
+  }
+
+  async function handleDuplicate() {
+    if (!id || !user) return
+    setActionLoading(true)
+    try {
+      const copy = await duplicateQuiz(id, user.id)
+      navigate(`/teacher/quiz/${copy.id}`)
+    } catch {
+      setActionLoading(false)
+    }
+  }
+
   function handleCopyLink() {
     const url = `${window.location.origin}/join?code=${quiz!.access_code}`
     navigator.clipboard.writeText(url)
@@ -181,16 +210,24 @@ export default function QuizDetail() {
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.classes}`}>
             {cfg.label}
           </span>
+          {quiz.subject && (
+            <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 px-2.5 py-0.5 text-xs font-medium">
+              {quiz.subject.name}
+            </span>
+          )}
+          {quiz.class && (
+            <span className="inline-flex items-center rounded-full bg-purple-50 text-purple-700 px-2.5 py-0.5 text-xs font-medium">
+              {quiz.class.name}
+            </span>
+          )}
         </div>
-        {quiz.status === 'draft' && (
-          <Link
-            to={`/teacher/quiz/${id}/edit`}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Edit className="h-4 w-4" />
-            Bearbeiten
-          </Link>
-        )}
+        <Link
+          to={`/teacher/quiz/${id}/edit`}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <Edit className="h-4 w-4" />
+          Bearbeiten
+        </Link>
       </div>
 
       {/* Stats cards */}
@@ -228,6 +265,14 @@ export default function QuizDetail() {
         {quiz.status === 'published' && (
           <>
             <button
+              onClick={handleRevertToDraft}
+              disabled={actionLoading}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Zurück zu Entwurf
+            </button>
+            <button
               onClick={handleClose}
               disabled={actionLoading}
               className="inline-flex items-center gap-2 rounded-lg border border-warning bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors"
@@ -249,6 +294,14 @@ export default function QuizDetail() {
         )}
         {quiz.status === 'closed' && (
           <>
+            <button
+              onClick={handleRevertToDraft}
+              disabled={actionLoading}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Zurück zu Entwurf
+            </button>
             <button
               onClick={handleArchive}
               disabled={actionLoading}
@@ -310,6 +363,14 @@ export default function QuizDetail() {
             Ähnlichen Test erstellen
           </Link>
         )}
+        <button
+          onClick={handleDuplicate}
+          disabled={actionLoading}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+        >
+          <Copy className="h-4 w-4" />
+          Kopieren
+        </button>
         <button
           onClick={handleShare}
           className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"

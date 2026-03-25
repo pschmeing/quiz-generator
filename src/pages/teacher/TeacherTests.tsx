@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { fetchTeacherQuizzes, fetchSessionCount } from '../../db'
-import type { PublishedQuiz, QuizStatus } from '../../types'
-import { Plus, FileText, Users, Calendar, Hash } from 'lucide-react'
+import { fetchTeacherQuizzes, fetchSessionCount, fetchSubjects, fetchClasses } from '../../db'
+import type { PublishedQuiz, QuizStatus, Subject, SchoolClass } from '../../types'
+import { Plus, FileText, Users, Calendar, Hash, BookOpen, GraduationCap, Filter } from 'lucide-react'
 
 const tabs: { label: string; statuses: QuizStatus[] }[] = [
   { label: 'Entwürfe', statuses: ['draft'] },
@@ -26,15 +26,25 @@ export default function TeacherTests() {
   const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({})
   const [activeTab, setActiveTab] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [classes, setClasses] = useState<SchoolClass[]>([])
+  const [filterSubject, setFilterSubject] = useState<string>('')
+  const [filterClass, setFilterClass] = useState<string>('')
 
   useEffect(() => {
     if (!user) return
     setLoading(true)
-    fetchTeacherQuizzes(user.id)
-      .then(async (data) => {
-        setQuizzes(data)
+    Promise.all([
+      fetchTeacherQuizzes(user.id),
+      fetchSubjects(user.id),
+      fetchClasses(user.id),
+    ])
+      .then(async ([quizData, subjectData, classData]) => {
+        setQuizzes(quizData)
+        setSubjects(subjectData)
+        setClasses(classData)
         // Fetch session counts for published quizzes
-        const published = data.filter((q) => q.status === 'published')
+        const published = quizData.filter((q) => q.status === 'published')
         const counts: Record<string, number> = {}
         await Promise.all(
           published.map(async (q) => {
@@ -47,7 +57,12 @@ export default function TeacherTests() {
       .finally(() => setLoading(false))
   }, [user])
 
-  const filtered = quizzes.filter((q) => tabs[activeTab].statuses.includes(q.status))
+  const filtered = quizzes.filter((q) => {
+    if (!tabs[activeTab].statuses.includes(q.status)) return false
+    if (filterSubject && q.subject_id !== filterSubject) return false
+    if (filterClass && q.class_id !== filterClass) return false
+    return true
+  })
 
   const emptyMessages: Record<number, string> = {
     0: 'Keine Entwürfe vorhanden.',
@@ -86,6 +101,50 @@ export default function TeacherTests() {
           </button>
         ))}
       </div>
+
+      {/* Filters */}
+      {(subjects.length > 0 || classes.length > 0) && (
+        <div className="flex flex-wrap gap-3 mb-6">
+          {subjects.length > 0 && (
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-gray-400" />
+              <select
+                value={filterSubject}
+                onChange={(e) => setFilterSubject(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+              >
+                <option value="">Alle Fächer</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {classes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-gray-400" />
+              <select
+                value={filterClass}
+                onChange={(e) => setFilterClass(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+              >
+                <option value="">Alle Klassen</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {(filterSubject || filterClass) && (
+            <button
+              onClick={() => { setFilterSubject(''); setFilterClass('') }}
+              className="text-sm text-primary-600 hover:text-primary-700 hover:underline"
+            >
+              Filter zurücksetzen
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (
@@ -130,6 +189,16 @@ export default function TeacherTests() {
                         <Calendar className="h-4 w-4" />
                         {new Date(quiz.created_at).toLocaleDateString('de-DE')}
                       </span>
+                      {quiz.subject && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 text-blue-700 px-2 py-0.5 text-xs font-medium">
+                          {quiz.subject.name}
+                        </span>
+                      )}
+                      {quiz.class && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 text-purple-700 px-2 py-0.5 text-xs font-medium">
+                          {quiz.class.name}
+                        </span>
+                      )}
                       {quiz.status === 'published' && sessionCounts[quiz.id] !== undefined && (
                         <span className="inline-flex items-center gap-1.5">
                           <Users className="h-4 w-4" />

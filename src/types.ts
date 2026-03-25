@@ -16,6 +16,20 @@ export type Difficulty = 'Einfach' | 'Mittel' | 'Schwer'
 export type Audience = 'Berufskolleg' | 'Gymnasium' | 'Universität'
 export type QuizStatus = 'draft' | 'published' | 'closed' | 'archived'
 
+export interface Subject {
+  id: string
+  name: string
+  created_by: string
+  created_at: string
+}
+
+export interface SchoolClass {
+  id: string
+  name: string
+  created_by: string
+  created_at: string
+}
+
 export interface QuizConfig {
   topic: string
   difficulty?: Difficulty
@@ -33,6 +47,10 @@ export interface PublishedQuiz {
   status: QuizStatus
   created_by: string | null
   created_at: string
+  subject_id?: string | null
+  class_id?: string | null
+  subject?: Subject | null
+  class?: SchoolClass | null
 }
 
 export interface QuizSession {

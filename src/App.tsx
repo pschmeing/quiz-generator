@@ -9,6 +9,8 @@ import TeacherTests from './pages/teacher/TeacherTests'
 import QuizCreate from './pages/teacher/QuizCreate'
 import QuizDetail from './pages/teacher/QuizDetail'
 import QuizEdit from './pages/teacher/QuizEdit'
+import SubjectsPage from './pages/teacher/SubjectsPage'
+import ClassesPage from './pages/teacher/ClassesPage'
 import AdminPage from './pages/admin/AdminPage'
 import QuizTake from './pages/QuizTake'
 import QuizResults from './pages/QuizResults'
@@ -34,6 +36,8 @@ export default function App() {
           <Route path="new" element={<QuizCreate />} />
           <Route path="quiz/:id" element={<QuizDetail />} />
           <Route path="quiz/:id/edit" element={<QuizEdit />} />
+          <Route path="subjects" element={<SubjectsPage />} />
+          <Route path="classes" element={<ClassesPage />} />
         </Route>
 
         {/* Admin routes */}

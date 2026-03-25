@@ -1,30 +1,44 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { fetchQuizById, updateQuiz, publishDraft } from '../../db'
-import type { PublishedQuiz, QuizQuestion } from '../../types'
+import { useAuth } from '../../contexts/AuthContext'
+import { fetchQuizById, updateQuiz, publishDraft, fetchSubjects, fetchClasses } from '../../db'
+import type { PublishedQuiz, QuizQuestion, Subject, SchoolClass } from '../../types'
 import { Plus, Trash2, Save, Send, GripVertical, ArrowLeft } from 'lucide-react'
 
 export default function QuizEdit() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [quiz, setQuiz] = useState<PublishedQuiz | null>(null)
   const [title, setTitle] = useState('')
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [classes, setClasses] = useState<SchoolClass[]>([])
+  const [selectedSubject, setSelectedSubject] = useState<string>('')
+  const [selectedClass, setSelectedClass] = useState<string>('')
 
   useEffect(() => {
-    if (!id) return
-    fetchQuizById(id).then((q) => {
+    if (!id || !user) return
+    Promise.all([
+      fetchQuizById(id),
+      fetchSubjects(user.id),
+      fetchClasses(user.id),
+    ]).then(([q, s, c]) => {
       if (q) {
         setQuiz(q)
         setTitle(q.title)
         setQuestions(q.questions)
+        setSelectedSubject(q.subject_id ?? '')
+        setSelectedClass(q.class_id ?? '')
       }
+      setSubjects(s)
+      setClasses(c)
       setLoading(false)
     })
-  }, [id])
+  }, [id, user])
 
   function updateQuestion(index: number, updates: Partial<QuizQuestion>) {
     setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, ...updates } : q)))
@@ -80,7 +94,7 @@ export default function QuizEdit() {
     setSaving(true)
     setError(null)
     try {
-      await updateQuiz(id, { title, questions })
+      await updateQuiz(id, { title, questions, subject_id: selectedSubject || null, class_id: selectedClass || null })
       navigate(`/teacher/quiz/${id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern')
@@ -94,7 +108,7 @@ export default function QuizEdit() {
     setSaving(true)
     setError(null)
     try {
-      await updateQuiz(id, { title, questions })
+      await updateQuiz(id, { title, questions, subject_id: selectedSubject || null, class_id: selectedClass || null })
       await publishDraft(id)
       navigate(`/teacher/quiz/${id}`)
     } catch (err) {
@@ -147,6 +161,40 @@ export default function QuizEdit() {
           placeholder="Titel eingeben..."
         />
       </div>
+
+      {/* Subject & Class */}
+      {(subjects.length > 0 || classes.length > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          {subjects.length > 0 && (
+            <div>
+              <label htmlFor="edit-subject" className="block text-sm font-medium text-gray-700 mb-1.5">Fach</label>
+              <select
+                id="edit-subject"
+                value={selectedSubject}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+              >
+                <option value="">Kein Fach</option>
+                {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+          )}
+          {classes.length > 0 && (
+            <div>
+              <label htmlFor="edit-class" className="block text-sm font-medium text-gray-700 mb-1.5">Klasse</label>
+              <select
+                id="edit-class"
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+              >
+                <option value="">Keine Klasse</option>
+                {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Questions */}
       <div className="space-y-4 mb-6">

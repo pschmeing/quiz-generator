@@ -1,10 +1,12 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { LayoutDashboard, Plus, Shield } from 'lucide-react'
+import { LayoutDashboard, Plus, BookOpen, GraduationCap, Shield } from 'lucide-react'
 
 const navItems = [
   { to: '/teacher', label: 'Meine Tests', icon: LayoutDashboard, end: true },
   { to: '/teacher/new', label: 'Neuer Test', icon: Plus },
+  { to: '/teacher/subjects', label: 'Fächer', icon: BookOpen },
+  { to: '/teacher/classes', label: 'Klassen', icon: GraduationCap },
 ]
 
 export default function TeacherLayout() {

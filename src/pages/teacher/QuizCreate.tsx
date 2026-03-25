@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { generateQuiz } from '../../api'
-import { saveQuizDraft, publishQuiz, countTodayQuizzes } from '../../db'
-import type { QuizConfig, Quiz } from '../../types'
-import { Sparkles, Save, Send } from 'lucide-react'
+import { saveQuizDraft, publishQuiz, countTodayQuizzes, fetchSubjects, fetchClasses } from '../../db'
+import type { QuizConfig, Quiz, Subject, SchoolClass } from '../../types'
+import { Sparkles, Save, Send, Edit } from 'lucide-react'
 
 export default function QuizCreate() {
   const { user, isAdmin } = useAuth()
@@ -20,6 +20,17 @@ export default function QuizCreate() {
   const [saving, setSaving] = useState(false)
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [classes, setClasses] = useState<SchoolClass[]>([])
+  const [selectedSubject, setSelectedSubject] = useState<string>('')
+  const [selectedClass, setSelectedClass] = useState<string>('')
+
+  useEffect(() => {
+    if (!user) return
+    Promise.all([fetchSubjects(user.id), fetchClasses(user.id)]).then(
+      ([s, c]) => { setSubjects(s); setClasses(c) }
+    )
+  }, [user])
 
   const DAILY_LIMIT = 2
 
@@ -50,8 +61,23 @@ export default function QuizCreate() {
     if (!quiz || !user) return
     setSaving(true)
     try {
-      const saved = await saveQuizDraft(quiz, user.id)
+      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null }
+      const saved = await saveQuizDraft(quiz, user.id, opts)
       navigate(`/teacher/quiz/${saved.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Speichern')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleSaveAndEdit() {
+    if (!quiz || !user) return
+    setSaving(true)
+    try {
+      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null }
+      const saved = await saveQuizDraft(quiz, user.id, opts)
+      navigate(`/teacher/quiz/${saved.id}/edit`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern')
     } finally {
@@ -63,7 +89,8 @@ export default function QuizCreate() {
     if (!quiz || !user) return
     setSaving(true)
     try {
-      const published = await publishQuiz(quiz, user.id)
+      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null }
+      const published = await publishQuiz(quiz, user.id, opts)
       navigate(`/teacher/quiz/${published.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Veröffentlichen')
@@ -231,7 +258,41 @@ export default function QuizCreate() {
                 className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-lg font-semibold text-gray-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
               />
             </div>
-            <p className="text-sm text-gray-500 mb-6">{quiz.questions.length} Fragen generiert</p>
+            <p className="text-sm text-gray-500 mb-4">{quiz.questions.length} Fragen generiert</p>
+
+            {/* Subject & Class selection */}
+            {(subjects.length > 0 || classes.length > 0) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                {subjects.length > 0 && (
+                  <div>
+                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1.5">Fach</label>
+                    <select
+                      id="subject"
+                      value={selectedSubject}
+                      onChange={(e) => setSelectedSubject(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                    >
+                      <option value="">Kein Fach</option>
+                      {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {classes.length > 0 && (
+                  <div>
+                    <label htmlFor="class" className="block text-sm font-medium text-gray-700 mb-1.5">Klasse</label>
+                    <select
+                      id="class"
+                      value={selectedClass}
+                      onChange={(e) => setSelectedClass(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                    >
+                      <option value="">Keine Klasse</option>
+                      {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-4">
               {quiz.questions.map((q, i) => (
@@ -276,6 +337,14 @@ export default function QuizCreate() {
             >
               <Save className="h-4 w-4" />
               Als Entwurf speichern
+            </button>
+            <button
+              onClick={handleSaveAndEdit}
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-primary-300 bg-primary-50 px-4 py-3 text-sm font-medium text-primary-700 hover:bg-primary-100 disabled:opacity-50 transition-colors"
+            >
+              <Edit className="h-4 w-4" />
+              Bearbeiten
             </button>
             <button
               onClick={handlePublish}
