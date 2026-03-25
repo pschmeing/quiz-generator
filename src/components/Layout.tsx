@@ -6,6 +6,7 @@ export default function Layout() {
   const { user, teacher, isTeacher, signOut } = useAuth()
   const location = useLocation()
   const isHome = location.pathname === '/'
+  const isTeacherArea = location.pathname.startsWith('/teacher') || location.pathname.startsWith('/admin')
 
   return (
     <div className="min-h-screen bg-primary-50 font-sans">
@@ -17,7 +18,18 @@ export default function Layout() {
           </Link>
 
           <nav className="flex items-center gap-1 sm:gap-3">
-            {isTeacher && (
+            {/* In teacher area: show "Test beitreten" link */}
+            {isTeacherArea && (
+              <Link
+                to="/"
+                className="px-3 sm:px-4 py-2.5 text-sm font-medium text-primary-700 hover:text-primary-900 hover:bg-primary-100 rounded-lg transition-colors"
+              >
+                Test beitreten
+              </Link>
+            )}
+
+            {/* On home / other pages: show Dashboard link */}
+            {!isTeacherArea && isTeacher && (
               <Link
                 to="/teacher"
                 className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
