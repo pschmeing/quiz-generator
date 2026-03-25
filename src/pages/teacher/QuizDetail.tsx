@@ -156,14 +156,14 @@ export default function QuizDetail() {
   }
 
   function handleCopyLink() {
-    const url = `${window.location.origin}/join?code=${quiz!.access_code}`
+    const url = `${window.location.origin}/join/${quiz!.access_code}`
     navigator.clipboard.writeText(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   function handleShare() {
-    const url = `${window.location.origin}/join?code=${quiz!.access_code}`
+    const url = `${window.location.origin}/join/${quiz!.access_code}`
     if (navigator.share) {
       navigator.share({ title: quiz!.title, url })
     } else {

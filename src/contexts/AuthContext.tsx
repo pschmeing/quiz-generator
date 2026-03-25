@@ -70,7 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string) {
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    })
     return { error: error?.message ?? null }
   }
 
@@ -80,7 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function sendMagicLink(email: string) {
-    const { error } = await supabase.auth.signInWithOtp({ email })
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    })
     return { error: error?.message ?? null }
   }
 
