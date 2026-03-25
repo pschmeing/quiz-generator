@@ -6,6 +6,7 @@ export default function Layout() {
   const { user, teacher, isTeacher, signOut } = useAuth()
   const location = useLocation()
   const isTeacherArea = location.pathname.startsWith('/teacher') || location.pathname.startsWith('/admin')
+  const isHome = location.pathname === '/'
 
   return (
     <div className="min-h-screen bg-primary-50 font-sans">
@@ -49,14 +50,14 @@ export default function Layout() {
                   <LogOut className="w-5 h-5" />
                 </button>
               </div>
-            ) : (
+            ) : !isHome ? (
               <Link
                 to="/login"
                 className="px-3 sm:px-4 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 Anmelden
               </Link>
-            )}
+            ) : null}
           </nav>
         </div>
       </header>
