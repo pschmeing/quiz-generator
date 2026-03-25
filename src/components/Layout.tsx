@@ -18,15 +18,6 @@ export default function Layout() {
           </Link>
 
           <nav className="flex items-center gap-1 sm:gap-3">
-            {!isTeacherArea && (
-              <Link
-                to="/"
-                className="hidden sm:inline-flex px-4 py-2.5 text-sm font-medium text-primary-700 hover:text-primary-900 hover:bg-primary-100 rounded-lg transition-colors"
-              >
-                Test beitreten
-              </Link>
-            )}
-
             {isTeacher && (
               <Link
                 to="/teacher"
