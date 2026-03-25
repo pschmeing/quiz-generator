@@ -7,9 +7,10 @@ interface Props {
   onStartQuiz: () => void
   onExport: (mode: 'student' | 'teacher') => void
   onRegenerate: () => void
+  onPublish: () => void
 }
 
-export default function QuizReview({ quiz, onStartQuiz, onExport, onRegenerate }: Props) {
+export default function QuizReview({ quiz, onStartQuiz, onExport, onRegenerate, onPublish }: Props) {
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -45,6 +46,12 @@ export default function QuizReview({ quiz, onStartQuiz, onExport, onRegenerate }
       </div>
 
       <div className="flex flex-wrap gap-3 justify-center sticky bottom-4">
+        <button
+          onClick={onPublish}
+          className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+        >
+          Test veröffentlichen
+        </button>
         <button
           onClick={onStartQuiz}
           className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"

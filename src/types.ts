@@ -24,3 +24,28 @@ export interface QuizConfig {
   difficulty?: Difficulty
   audience?: Audience
 }
+
+export interface PublishedQuiz {
+  id: string
+  title: string
+  questions: QuizQuestion[]
+  access_code: string
+  created_at: string
+}
+
+export interface QuizSession {
+  id: string
+  quiz_id: string
+  student_name: string
+  score: number
+  total: number
+  answers: StudentAnswer[]
+  completed_at: string
+}
+
+export interface StudentAnswer {
+  question_id: number
+  selected: string
+  correct: string
+  is_correct: boolean
+}
