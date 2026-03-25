@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { fetchTeacherQuizzes, fetchSessionCount, fetchSubjects, fetchClasses } from '../../db'
@@ -25,6 +25,7 @@ export default function TeacherTests() {
   const [quizzes, setQuizzes] = useState<PublishedQuiz[]>([])
   const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({})
   const [activeTab, setActiveTab] = useState(0)
+  const tabsRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [classes, setClasses] = useState<SchoolClass[]>([])
@@ -86,10 +87,11 @@ export default function TeacherTests() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 mb-6 overflow-x-auto -mx-4 px-4 scrollbar-none">
+      <div ref={tabsRef} className="flex gap-1 border-b border-gray-200 mb-6 overflow-x-auto -mx-4 px-4 scrollbar-none">
         {tabs.map((tab, i) => (
           <button
             key={tab.label}
+            ref={(el) => { if (el && activeTab === i) el.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' }) }}
             onClick={() => setActiveTab(i)}
             className={`px-3 sm:px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
               activeTab === i
