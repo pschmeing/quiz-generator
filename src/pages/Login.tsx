@@ -199,23 +199,24 @@ export default function Login() {
             </button>
 
             {studentMode === 'magic' ? (
-              <p className="text-xs text-center text-primary-900/60">
+              <p className="text-sm text-center text-primary-900/60">
                 Oder{' '}
                 <button type="button" onClick={() => { setStudentMode('register'); resetMessages() }} className="text-primary-600 hover:text-primary-700 font-medium underline underline-offset-2">
                   mit Passwort registrieren
                 </button>
               </p>
             ) : (
-              <p className="text-xs text-center text-primary-900/60">
-                {isSignup ? 'Schon ein Konto?' : 'Noch kein Konto?'}{' '}
-                <button type="button" onClick={() => { setIsSignup(!isSignup); resetMessages() }} className="text-primary-600 hover:text-primary-700 font-medium underline underline-offset-2">
-                  {isSignup ? 'Anmelden' : 'Registrieren'}
-                </button>
-                {' · '}
+              <div className="flex flex-col items-center gap-1.5 text-sm text-primary-900/60">
+                <p>
+                  {isSignup ? 'Schon ein Konto?' : 'Noch kein Konto?'}{' '}
+                  <button type="button" onClick={() => { setIsSignup(!isSignup); resetMessages() }} className="text-primary-600 hover:text-primary-700 font-medium underline underline-offset-2">
+                    {isSignup ? 'Anmelden' : 'Registrieren'}
+                  </button>
+                </p>
                 <button type="button" onClick={() => { setStudentMode('magic'); resetMessages() }} className="text-primary-600 hover:text-primary-700 font-medium underline underline-offset-2">
-                  Magic Link
+                  Magic Link nutzen
                 </button>
-              </p>
+              </div>
             )}
           </form>
         )}
@@ -270,7 +271,7 @@ export default function Login() {
               {!loading && <ArrowRight size={16} />}
             </button>
 
-            <p className="text-xs text-center text-primary-900/60">
+            <p className="text-sm text-center text-primary-900/60">
               {isSignup ? 'Schon ein Konto?' : 'Noch kein Konto?'}{' '}
               <button
                 type="button"

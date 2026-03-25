@@ -20,7 +20,7 @@ export default function TeacherLayout() {
     }`
 
   const mobileLinkClasses = ({ isActive }: { isActive: boolean }) =>
-    `flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors ${
+    `flex flex-col items-center gap-0.5 px-2 py-2.5 text-[11px] font-medium transition-colors min-w-[56px] ${
       isActive
         ? 'text-primary-700'
         : 'text-gray-500 hover:text-gray-700'
@@ -61,7 +61,7 @@ export default function TeacherLayout() {
       </main>
 
       {/* Mobile bottom navigation */}
-      <nav className="fixed bottom-0 inset-x-0 z-50 flex md:hidden items-center justify-around bg-white/80 backdrop-blur-md border-t border-white/20 shadow-lg py-1">
+      <nav className="fixed bottom-0 inset-x-0 z-50 flex md:hidden items-center justify-around bg-white/80 backdrop-blur-md border-t border-white/20 shadow-lg py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
         {navItems.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end} className={mobileLinkClasses}>
             <item.icon className="h-5 w-5" />

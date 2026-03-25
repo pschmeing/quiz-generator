@@ -73,7 +73,7 @@ export default function StudentHome() {
                   setError('')
                 }}
                 placeholder="ABCD12"
-                className="w-full text-center font-mono text-2xl tracking-widest uppercase px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white/60 placeholder:text-gray-300"
+                className="w-full text-center font-mono text-xl sm:text-2xl tracking-[0.2em] sm:tracking-widest uppercase px-3 sm:px-4 py-3.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white/60 placeholder:text-gray-300"
                 autoFocus
               />
             </div>

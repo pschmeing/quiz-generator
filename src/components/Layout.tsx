@@ -16,11 +16,11 @@ export default function Layout() {
             <span className="text-lg font-bold text-primary-900">Quiz Generator</span>
           </Link>
 
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-1 sm:gap-3">
             {!isTeacherArea && (
               <Link
                 to="/"
-                className="px-4 py-2 text-sm font-medium text-primary-700 hover:text-primary-900 hover:bg-primary-100 rounded-lg transition-colors"
+                className="hidden sm:inline-flex px-4 py-2.5 text-sm font-medium text-primary-700 hover:text-primary-900 hover:bg-primary-100 rounded-lg transition-colors"
               >
                 Test beitreten
               </Link>
@@ -29,32 +29,30 @@ export default function Layout() {
             {isTeacher && (
               <Link
                 to="/teacher"
-                className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                <span className="flex items-center gap-1.5">
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </span>
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden sm:inline">Dashboard</span>
               </Link>
             )}
 
             {user ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-primary-600 hidden sm:block">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <span className="text-sm text-primary-600 hidden sm:block max-w-[150px] truncate">
                   {teacher?.display_name ?? user.email}
                 </span>
                 <button
                   onClick={signOut}
-                  className="p-2 text-primary-500 hover:text-primary-700 hover:bg-primary-100 rounded-lg transition-colors cursor-pointer"
+                  className="p-2.5 text-primary-500 hover:text-primary-700 hover:bg-primary-100 rounded-lg transition-colors cursor-pointer"
                   title="Abmelden"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-5 h-5" />
                 </button>
               </div>
             ) : (
               <Link
                 to="/login"
-                className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                className="px-3 sm:px-4 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 Anmelden
               </Link>

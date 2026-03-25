@@ -246,13 +246,13 @@ export default function QuizTake() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 flex flex-col">
       {/* Progress bar */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-white/20 px-4 py-3">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-white/20 px-4 py-3.5">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
             <span className="font-medium">
               Frage {currentIndex + 1} von {quiz.questions.length}
             </span>
-            <span className="text-gray-400">{quiz.title}</span>
+            <span className="text-gray-400 truncate ml-3 max-w-[40%] text-right">{quiz.title}</span>
           </div>
           <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div

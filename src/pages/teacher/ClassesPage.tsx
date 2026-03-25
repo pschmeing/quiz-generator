@@ -131,15 +131,15 @@ export default function ClassesPage() {
                   />
                   <button
                     onClick={() => handleUpdate(cls.id)}
-                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                    className="p-2.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="h-5 w-5" />
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
-                    className="p-1.5 text-gray-400 hover:bg-gray-50 rounded-md transition-colors"
+                    className="p-2.5 text-gray-400 hover:bg-gray-50 rounded-lg transition-colors"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
                 </>
               ) : (
@@ -147,15 +147,15 @@ export default function ClassesPage() {
                   <span className="flex-1 text-sm text-gray-900">{cls.name}</span>
                   <button
                     onClick={() => startEdit(cls)}
-                    className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
+                    className="p-2.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-5 w-5" />
                   </button>
                   <button
                     onClick={() => handleDelete(cls.id, cls.name)}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-5 w-5" />
                   </button>
                 </>
               )}

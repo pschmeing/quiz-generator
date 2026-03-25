@@ -83,92 +83,79 @@ export default function AdminPage() {
           <p className="text-gray-500">Keine Lehrer registriert.</p>
         </div>
       ) : (
-        <div className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left px-5 py-3 font-medium text-gray-500">Email</th>
-                  <th className="text-left px-5 py-3 font-medium text-gray-500">Name</th>
-                  <th className="text-left px-5 py-3 font-medium text-gray-500">Rolle</th>
-                  <th className="text-left px-5 py-3 font-medium text-gray-500">Status</th>
-                  <th className="text-left px-5 py-3 font-medium text-gray-500">Aktionen</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {teachers.map((teacher) => (
-                  <tr key={teacher.id} className="hover:bg-gray-50/50">
-                    <td className="px-5 py-3 text-gray-900">{teacher.email}</td>
-                    <td className="px-5 py-3 text-gray-700">{teacher.display_name ?? '—'}</td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        teacher.role === 'admin'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {teacher.role === 'admin' ? 'Admin' : 'Lehrer'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        teacher.approved
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {teacher.approved ? 'Freigeschaltet' : 'Wartend'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        {teacher.role !== 'admin' && (
-                          teacher.approved ? (
-                            <button
-                              onClick={() => handleRevoke(teacher.id)}
-                              disabled={actionLoading === teacher.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                              Sperren
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleApprove(teacher.id)}
-                              disabled={actionLoading === teacher.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50 transition-colors"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                              Freischalten
-                            </button>
-                          )
-                        )}
-                        {teacher.id !== user?.id && (
-                          teacher.role === 'admin' ? (
-                            <button
-                              onClick={() => handleRevokeAdmin(teacher.id)}
-                              disabled={actionLoading === teacher.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors"
-                            >
-                              <ShieldMinus className="h-3.5 w-3.5" />
-                              Admin entziehen
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleMakeAdmin(teacher.id)}
-                              disabled={actionLoading === teacher.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50 transition-colors"
-                            >
-                              <ShieldPlus className="h-3.5 w-3.5" />
-                              Zum Admin
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg divide-y divide-gray-100">
+          {teachers.map((teacher) => (
+            <div key={teacher.id} className="px-4 sm:px-5 py-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{teacher.display_name ?? teacher.email}</p>
+                  {teacher.display_name && (
+                    <p className="text-sm text-gray-500 truncate">{teacher.email}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    teacher.role === 'admin'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {teacher.role === 'admin' ? 'Admin' : 'Lehrer'}
+                  </span>
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    teacher.approved
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {teacher.approved ? 'Freigeschaltet' : 'Wartend'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {teacher.role !== 'admin' && (
+                  teacher.approved ? (
+                    <button
+                      onClick={() => handleRevoke(teacher.id)}
+                      disabled={actionLoading === teacher.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Sperren
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleApprove(teacher.id)}
+                      disabled={actionLoading === teacher.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50 transition-colors"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      Freischalten
+                    </button>
+                  )
+                )}
+                {teacher.id !== user?.id && (
+                  teacher.role === 'admin' ? (
+                    <button
+                      onClick={() => handleRevokeAdmin(teacher.id)}
+                      disabled={actionLoading === teacher.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+                    >
+                      <ShieldMinus className="h-3.5 w-3.5" />
+                      Admin entziehen
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleMakeAdmin(teacher.id)}
+                      disabled={actionLoading === teacher.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50 transition-colors"
+                    >
+                      <ShieldPlus className="h-3.5 w-3.5" />
+                      Zum Admin
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
