@@ -84,3 +84,14 @@ export async function fetchSessionsForQuiz(accessCode: string, password: string)
   if (error) throw new Error(`Fehler: ${error.message}`)
   return (data ?? []) as QuizSession[]
 }
+
+export async function fetchSessionsByQuizId(quizId: string): Promise<QuizSession[]> {
+  const { data, error } = await supabase
+    .from('quiz_sessions')
+    .select('*')
+    .eq('quiz_id', quizId)
+    .order('completed_at', { ascending: false })
+
+  if (error) throw new Error(`Fehler beim Laden: ${error.message}`)
+  return (data ?? []) as QuizSession[]
+}

@@ -10,7 +10,9 @@ import TeacherDashboard from './components/TeacherDashboard'
 import StudentLogin from './components/StudentLogin'
 import OnlineStudentView from './components/OnlineStudentView'
 
-type View = 'input' | 'loading' | 'review' | 'student' | 'export' | 'dashboard' | 'student-login' | 'online-quiz'
+type View = 'input' | 'loading' | 'review' | 'student' | 'export' | 'dashboard' | 'teacher-login' | 'student-login' | 'online-quiz'
+
+const TEACHER_PASSWORD = 'test2026'
 
 function App() {
   const [view, setView] = useState<View>('input')
@@ -20,6 +22,9 @@ function App() {
   const [showPublish, setShowPublish] = useState(false)
   const [onlineQuiz, setOnlineQuiz] = useState<PublishedQuiz | null>(null)
   const [studentName, setStudentName] = useState('')
+  const [teacherAuth, setTeacherAuth] = useState(false)
+  const [teacherPw, setTeacherPw] = useState('')
+  const [teacherPwError, setTeacherPwError] = useState(false)
 
   async function handleGenerate(config: QuizConfig) {
     setView('loading')
@@ -62,7 +67,15 @@ function App() {
               Test beitreten
             </button>
             <button
-              onClick={() => setView('dashboard')}
+              onClick={() => {
+                if (teacherAuth) {
+                  setView('dashboard')
+                } else {
+                  setTeacherPw('')
+                  setTeacherPwError(false)
+                  setView('teacher-login')
+                }
+              }}
               className="px-4 py-2 rounded-lg text-sm font-medium bg-white/20 hover:bg-white/30 transition-colors"
             >
               Dashboard
@@ -103,6 +116,57 @@ function App() {
             mode={exportMode}
             onBack={() => setView('review')}
           />
+        )}
+
+        {view === 'teacher-login' && (
+          <div className="max-w-md mx-auto">
+            <button
+              onClick={() => setView('input')}
+              className="text-blue-600 hover:text-blue-800 font-medium mb-4 inline-flex items-center gap-1"
+            >
+              &larr; Zurück
+            </button>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h3 className="text-xl font-bold text-slate-800 mb-1">Lehrer-Zugang</h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Bitte Passwort eingeben, um das Dashboard zu öffnen.
+              </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (teacherPw === TEACHER_PASSWORD) {
+                    setTeacherAuth(true)
+                    setTeacherPwError(false)
+                    setView('dashboard')
+                  } else {
+                    setTeacherPwError(true)
+                  }
+                }}
+                className="space-y-4"
+              >
+                <input
+                  type="password"
+                  value={teacherPw}
+                  onChange={(e) => { setTeacherPw(e.target.value); setTeacherPwError(false) }}
+                  placeholder="Passwort"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800 placeholder:text-slate-400"
+                  autoFocus
+                />
+                {teacherPwError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    Falsches Passwort
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={!teacherPw.trim()}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anmelden
+                </button>
+              </form>
+            </div>
+          </div>
         )}
 
         {view === 'dashboard' && (
