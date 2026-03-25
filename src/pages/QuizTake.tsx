@@ -328,7 +328,7 @@ export default function QuizTake() {
                   submitting ||
                   (isSingle ? !currentAnswer : selectedOptions.length === 0)
                 }
-                className="w-full sm:w-auto px-8 py-3 bg-success-600 hover:bg-success-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                className="w-full sm:w-auto px-8 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
               >
                 {submitting ? 'Wird abgegeben...' : 'Abgeben'}
               </button>
