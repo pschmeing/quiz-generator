@@ -36,7 +36,7 @@ export default function StudentHome() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 flex items-center justify-center px-4">
+    <div className="min-h-[calc(100dvh-4rem)] bg-gradient-to-br from-primary-50 via-white to-primary-100 flex items-center justify-center px-4 -mx-4 -my-6">
       <div className="w-full max-w-md text-center space-y-8">
         {/* Header */}
         <div className="space-y-3">
