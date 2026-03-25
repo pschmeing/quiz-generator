@@ -29,7 +29,7 @@ export default function TeacherLayout() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 font-sans">
       {/* Desktop sidebar */}
-      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:flex md:w-64 md:flex-col">
+      <aside className="hidden md:fixed md:top-16 md:bottom-0 md:left-0 md:flex md:w-64 md:flex-col md:z-40">
         <div className="flex flex-1 flex-col bg-white/80 backdrop-blur-md border-r border-white/20 shadow-lg px-4 py-6">
           <div className="mb-8 px-4">
             <h1 className="text-xl font-bold text-primary-700">Quiz Generator</h1>

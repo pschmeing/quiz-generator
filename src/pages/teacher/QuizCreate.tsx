@@ -24,6 +24,7 @@ export default function QuizCreate() {
   const [classes, setClasses] = useState<SchoolClass[]>([])
   const [selectedSubject, setSelectedSubject] = useState<string>('')
   const [selectedClass, setSelectedClass] = useState<string>('')
+  const [customTitle, setCustomTitle] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -49,6 +50,9 @@ export default function QuizCreate() {
         }
       }
       const result = await generateQuiz(config)
+      if (customTitle.trim()) {
+        result.title = customTitle.trim()
+      }
       setQuiz(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler bei der Generierung')
@@ -112,6 +116,53 @@ export default function QuizCreate() {
       {/* Generation form */}
       {!quiz && (
         <form onSubmit={handleGenerate} className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-6 space-y-5">
+          <div>
+            <label htmlFor="customTitle" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Titel (optional)
+            </label>
+            <input
+              id="customTitle"
+              type="text"
+              value={customTitle}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              placeholder="z.B. Biologie-Test Klasse 10a..."
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+            />
+          </div>
+
+          {(subjects.length > 0 || classes.length > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {subjects.length > 0 && (
+                <div>
+                  <label htmlFor="gen-subject" className="block text-sm font-medium text-gray-700 mb-1.5">Fach</label>
+                  <select
+                    id="gen-subject"
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                  >
+                    <option value="">Kein Fach</option>
+                    {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {classes.length > 0 && (
+                <div>
+                  <label htmlFor="gen-class" className="block text-sm font-medium text-gray-700 mb-1.5">Klasse</label>
+                  <select
+                    id="gen-class"
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                  >
+                    <option value="">Keine Klasse</option>
+                    {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-1.5">
               Thema
