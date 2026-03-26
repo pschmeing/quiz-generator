@@ -80,11 +80,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const data = await response.json()
   const content = data.content[0].text
-  const cleaned = content
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```\s*$/i, '')
-    .trim()
 
-  res.status(200).json(JSON.parse(cleaned))
+  // Extract JSON robustly: find the first { and last }
+  const firstBrace = content.indexOf('{')
+  const lastBrace = content.lastIndexOf('}')
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    return res.status(500).json({ error: 'Keine gültige JSON-Antwort vom Modell erhalten.' })
+  }
+
+  const jsonStr = content.slice(firstBrace, lastBrace + 1)
+
+  try {
+    res.status(200).json(JSON.parse(jsonStr))
+  } catch (e) {
+    return res.status(500).json({ error: `JSON-Parse-Fehler: ${e instanceof Error ? e.message : 'unbekannt'}` })
+  }
 }
