@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { generateQuiz } from '../../api'
 import { saveQuizDraft, publishQuiz, countTodayQuizzes, fetchSubjects, fetchClasses } from '../../db'
 import type { QuizConfig, Quiz, Subject, SchoolClass } from '../../types'
-import { Sparkles, Save, Send, Edit } from 'lucide-react'
+import { Sparkles, Save, Send, Edit, Upload, X, FileText, Loader2 } from 'lucide-react'
+import { extractTopics, type ParsedTopic } from '../../utils/parseLsMarkdown'
 
 export default function QuizCreate() {
   const { user, isAdmin } = useAuth()
@@ -26,6 +27,17 @@ export default function QuizCreate() {
   const [selectedClass, setSelectedClass] = useState<string>('')
   const [customTitle, setCustomTitle] = useState('')
 
+  // LS tab state
+  const [activeTab, setActiveTab] = useState<'topic' | 'ls'>('topic')
+  const [lsFiles, setLsFiles] = useState<{ name: string; content: string }[]>([])
+  const [topics, setTopics] = useState<ParsedTopic[]>([])
+  const [selectedTopicIndices, setSelectedTopicIndices] = useState<Set<number>>(new Set())
+  const [extractingTopics, setExtractingTopics] = useState(false)
+  const [showTextFallback, setShowTextFallback] = useState(false)
+  const [pastedText, setPastedText] = useState('')
+  const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     if (!user) return
     Promise.all([fetchSubjects(user.id), fetchClasses(user.id)]).then(
@@ -34,10 +46,89 @@ export default function QuizCreate() {
   }, [user])
 
   const DAILY_LIMIT = 2
+  const MAX_FILES = 2
+  const MAX_FILE_SIZE = 100 * 1024 // 100 KB
+
+  async function runTopicExtraction(files: { name: string; content: string }[]) {
+    setExtractingTopics(true)
+    try {
+      const combined = files.map((f) => f.content).join('\n\n---\n\n')
+      const extracted = await extractTopics(combined)
+      setTopics(extracted)
+      setSelectedTopicIndices(new Set(extracted.map((_, i) => i)))
+    } catch {
+      setTopics([])
+      setSelectedTopicIndices(new Set())
+    } finally {
+      setExtractingTopics(false)
+    }
+  }
+
+  function handleFileSelect(files: FileList | null) {
+    if (!files) return
+    const newFiles = Array.from(files).slice(0, MAX_FILES - lsFiles.length)
+    const errors: string[] = []
+
+    Promise.all(
+      newFiles.map(async (file) => {
+        if (!file.name.endsWith('.md')) {
+          errors.push(`${file.name}: Nur .md-Dateien erlaubt`)
+          return null
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          errors.push(`${file.name}: Datei zu groß (max 100 KB)`)
+          return null
+        }
+        const content = await file.text()
+        return { name: file.name, content }
+      })
+    ).then((results) => {
+      const valid = results.filter((r): r is { name: string; content: string } => r !== null)
+      if (errors.length > 0) {
+        setError(errors.join('. '))
+      }
+      if (valid.length > 0) {
+        const updated = [...lsFiles, ...valid].slice(0, MAX_FILES)
+        setLsFiles(updated)
+        runTopicExtraction(updated)
+      }
+    })
+  }
+
+  function removeFile(index: number) {
+    const updated = lsFiles.filter((_, i) => i !== index)
+    setLsFiles(updated)
+    if (updated.length > 0) {
+      runTopicExtraction(updated)
+    } else {
+      setTopics([])
+      setSelectedTopicIndices(new Set())
+    }
+  }
+
+  function toggleTopic(index: number) {
+    setSelectedTopicIndices((prev) => {
+      const next = new Set(prev)
+      if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
+      }
+      return next
+    })
+  }
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault()
-    if (!config.topic.trim() || !user) return
+    if (!user) return
+
+    const isLsMode = activeTab === 'ls'
+    const hasLsInput = lsFiles.length > 0 || pastedText.trim().length > 0
+    const hasTopicInput = config.topic.trim().length > 0
+
+    if (isLsMode && !hasLsInput) return
+    if (!isLsMode && !hasTopicInput) return
+
     setGenerating(true)
     setError(null)
     try {
@@ -49,7 +140,27 @@ export default function QuizCreate() {
           return
         }
       }
-      const result = await generateQuiz(config)
+
+      let genConfig = { ...config }
+
+      if (isLsMode) {
+        const lsContext = lsFiles.length > 0
+          ? lsFiles.map((f) => f.content).join('\n\n---\n\n')
+          : pastedText.trim()
+
+        const selectedTopics = topics.length > 0
+          ? topics.filter((_, i) => selectedTopicIndices.has(i)).map((t) => t.label)
+          : undefined
+
+        genConfig = {
+          ...genConfig,
+          topic: genConfig.topic || 'Lernsituation',
+          lsContext,
+          selectedGoals: selectedTopics,
+        }
+      }
+
+      const result = await generateQuiz(genConfig)
       if (customTitle.trim()) {
         result.title = customTitle.trim()
       }
@@ -116,6 +227,32 @@ export default function QuizCreate() {
       {/* Generation form */}
       {!quiz && (
         <form onSubmit={handleGenerate} className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-6 space-y-5">
+          {/* Tab switcher */}
+          <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('topic')}
+              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'topic'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Thema eingeben
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('ls')}
+              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'ls'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Aus Lernsituation
+            </button>
+          </div>
+
           <div>
             <label htmlFor="customTitle" className="block text-sm font-medium text-gray-700 mb-1.5">
               Titel (optional)
@@ -163,84 +300,282 @@ export default function QuizCreate() {
             </div>
           )}
 
-          <div>
-            <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-1.5">
-              Thema
-            </label>
-            <input
-              id="topic"
-              type="text"
-              required
-              value={config.topic}
-              onChange={(e) => setConfig({ ...config, topic: e.target.value })}
-              placeholder="z.B. Photosynthese, Dreisatz, Europäische Union..."
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
-            />
-          </div>
+          {/* Topic tab */}
+          {activeTab === 'topic' && (
+            <>
+              <div>
+                <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Thema
+                </label>
+                <input
+                  id="topic"
+                  type="text"
+                  required
+                  value={config.topic}
+                  onChange={(e) => setConfig({ ...config, topic: e.target.value })}
+                  placeholder="z.B. Photosynthese, Dreisatz, Europäische Union..."
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="questionCount" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Anzahl Fragen
+                  </label>
+                  <input
+                    id="questionCount"
+                    type="number"
+                    min={5}
+                    max={30}
+                    value={config.questionCount}
+                    onChange={(e) => setConfig({ ...config, questionCount: parseInt(e.target.value) || 5 })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Schwierigkeit
+                  </label>
+                  <select
+                    id="difficulty"
+                    value={config.difficulty ?? ''}
+                    onChange={(e) => setConfig({ ...config, difficulty: e.target.value as QuizConfig['difficulty'] || undefined })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                  >
+                    <option value="">Optional</option>
+                    <option value="Einfach">Einfach</option>
+                    <option value="Mittel">Mittel</option>
+                    <option value="Schwer">Schwer</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="audience" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Zielgruppe
+                  </label>
+                  <select
+                    id="audience"
+                    value={config.audience ?? ''}
+                    onChange={(e) => setConfig({ ...config, audience: e.target.value as QuizConfig['audience'] || undefined })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                  >
+                    <option value="">Optional</option>
+                    <option value="Berufskolleg">Berufskolleg</option>
+                    <option value="Gymnasium">Gymnasium</option>
+                    <option value="Universität">Universität</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* LS tab */}
+          {activeTab === 'ls' && (
+            <>
+              {/* File upload or text paste */}
+              {!showTextFallback ? (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".md"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      handleFileSelect(e.target.files)
+                      e.target.value = ''
+                    }}
+                  />
+
+                  {lsFiles.length === 0 ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setDragOver(false)
+                        handleFileSelect(e.dataTransfer.files)
+                      }}
+                      className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                        dragOver
+                          ? 'border-primary-400 bg-primary-50'
+                          : 'border-gray-300 hover:border-primary-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Upload className="mx-auto h-8 w-8 text-gray-400 mb-3" />
+                      <p className="text-sm font-medium text-gray-700">
+                        Lernsituation hochladen
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        .md-Datei hierher ziehen oder klicken (max. 2 Dateien, je 100 KB)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {lsFiles.map((f, i) => (
+                        <div key={i} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5">
+                          <FileText className="h-4 w-4 text-primary-600 shrink-0" />
+                          <span className="text-sm text-gray-700 truncate flex-1">{f.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(i)}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                      {lsFiles.length < MAX_FILES && (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-500 hover:border-primary-300 hover:text-primary-600 transition-colors"
+                        >
+                          + Weitere Datei hinzufügen
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowTextFallback(true)}
+                    className="mt-2 text-xs text-gray-400 hover:text-primary-600 transition-colors"
+                  >
+                    Kein .md-File? Text einfügen
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="pastedText" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Text einfügen
+                  </label>
+                  <textarea
+                    id="pastedText"
+                    rows={7}
+                    value={pastedText}
+                    onChange={(e) => setPastedText(e.target.value)}
+                    placeholder="Lernziele, Unterrichtsinhalte oder beliebigen Text hier einfügen..."
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors resize-y"
+                  />
+                  <div className="flex items-center justify-between mt-1">
+                    <button
+                      type="button"
+                      onClick={() => { setShowTextFallback(false); setPastedText('') }}
+                      className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
+                    >
+                      Doch lieber Datei hochladen?
+                    </button>
+                    <span className="text-xs text-gray-400">
+                      ~{Math.ceil(pastedText.length / 4).toLocaleString()} von max ~50.000 Zeichen
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Topic extraction loading */}
+              {extractingTopics && (
+                <div className="flex items-center gap-2 text-sm text-gray-500 py-3">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Themenfelder werden erkannt...
+                </div>
+              )}
+
+              {/* Parsed topics */}
+              {!extractingTopics && topics.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Themenfelder</p>
+                  <div className="flex flex-wrap gap-2">
+                    {topics.map((topic, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => toggleTopic(i)}
+                        className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                          selectedTopicIndices.has(i)
+                            ? 'bg-primary-100 text-primary-700 border border-primary-300'
+                            : 'bg-gray-100 text-gray-400 border border-gray-200 line-through'
+                        }`}
+                      >
+                        {topic.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">Klicke auf ein Themenfeld, um es ein-/auszuschließen.</p>
+                </div>
+              )}
+
+              {/* LS settings */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="ls-questionCount" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Anzahl Fragen
+                  </label>
+                  <input
+                    id="ls-questionCount"
+                    type="number"
+                    min={5}
+                    max={30}
+                    value={config.questionCount}
+                    onChange={(e) => setConfig({ ...config, questionCount: parseInt(e.target.value) || 5 })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ls-difficulty" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Schwierigkeit
+                  </label>
+                  <select
+                    id="ls-difficulty"
+                    value={config.difficulty ?? ''}
+                    onChange={(e) => setConfig({ ...config, difficulty: e.target.value as QuizConfig['difficulty'] || undefined })}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                  >
+                    <option value="">Optional</option>
+                    <option value="Einfach">Einfach</option>
+                    <option value="Mittel">Mittel</option>
+                    <option value="Schwer">Schwer</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Shared settings */}
+          {activeTab === 'ls' && (
             <div>
-              <label htmlFor="questionCount" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Anzahl Fragen
+              <label htmlFor="ls-optionCount" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Antwortoptionen
               </label>
               <input
-                id="questionCount"
+                id="ls-optionCount"
                 type="number"
-                min={5}
-                max={30}
-                value={config.questionCount}
-                onChange={(e) => setConfig({ ...config, questionCount: parseInt(e.target.value) || 5 })}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+                min={2}
+                max={6}
+                value={config.optionCount}
+                onChange={(e) => setConfig({ ...config, optionCount: parseInt(e.target.value) || 4 })}
+                className="w-full max-w-[200px] rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
               />
             </div>
-            <div>
-              <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Schwierigkeit
-              </label>
-              <select
-                id="difficulty"
-                value={config.difficulty ?? ''}
-                onChange={(e) => setConfig({ ...config, difficulty: e.target.value as QuizConfig['difficulty'] || undefined })}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
-              >
-                <option value="">Optional</option>
-                <option value="Einfach">Einfach</option>
-                <option value="Mittel">Mittel</option>
-                <option value="Schwer">Schwer</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="audience" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Zielgruppe
-              </label>
-              <select
-                id="audience"
-                value={config.audience ?? ''}
-                onChange={(e) => setConfig({ ...config, audience: e.target.value as QuizConfig['audience'] || undefined })}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
-              >
-                <option value="">Optional</option>
-                <option value="Berufskolleg">Berufskolleg</option>
-                <option value="Gymnasium">Gymnasium</option>
-                <option value="Universität">Universität</option>
-              </select>
-            </div>
-          </div>
+          )}
 
-          <div>
-            <label htmlFor="optionCount" className="block text-sm font-medium text-gray-700 mb-1.5">
-              Antwortoptionen
-            </label>
-            <input
-              id="optionCount"
-              type="number"
-              min={2}
-              max={6}
-              value={config.optionCount}
-              onChange={(e) => setConfig({ ...config, optionCount: parseInt(e.target.value) || 4 })}
-              className="w-full max-w-[200px] rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
-            />
-          </div>
+          {activeTab === 'topic' && (
+            <div>
+              <label htmlFor="optionCount" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Antwortoptionen
+              </label>
+              <input
+                id="optionCount"
+                type="number"
+                min={2}
+                max={6}
+                value={config.optionCount}
+                onChange={(e) => setConfig({ ...config, optionCount: parseInt(e.target.value) || 4 })}
+                className="w-full max-w-[200px] rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-colors"
+              />
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <button
@@ -275,7 +610,7 @@ export default function QuizCreate() {
 
           <button
             type="submit"
-            disabled={generating || !config.topic.trim()}
+            disabled={generating || (activeTab === 'topic' && !config.topic.trim()) || (activeTab === 'ls' && lsFiles.length === 0 && !pastedText.trim())}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {generating ? (

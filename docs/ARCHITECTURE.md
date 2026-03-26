@@ -11,6 +11,8 @@ React SPA (Vite) mit Supabase als Backend (Auth, Postgres, Row Level Security). 
 
 ## Data Flow
 1. Lehrer erstellt Quiz → Anthropic API generiert Fragen → Lehrer bearbeitet im Editor
+   - Variante A: Thema als Stichwort eingeben (Standard)
+   - Variante B: .md-Datei(en) hochladen oder Text einfügen → Client parst Lernziele → gesamter LS-Kontext + ausgewählte Lernziele an API → Budget-Guard (5ct/Quiz, Sonnet 4.6)
 2. Lehrer veröffentlicht → Supabase speichert Quiz mit Status + Access Code
 3. Schüler gibt Code ein → Lädt Quiz aus Supabase → Beantwortet Fragen
 4. Schüler sendet Ergebnis → Supabase speichert Session → Lehrer sieht Live-Status

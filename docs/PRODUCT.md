@@ -10,6 +10,7 @@ Quiz Generator ist eine Web-App für Lehrer, die per KI Multiple-Choice-Tests ge
 
 ## Features
 - KI-gestützte Quiz-Generierung (Thema, Schwierigkeit, Zielgruppe, Fragenanzahl)
+- Quiz aus Lernsituation: .md-Dateien (teach-ai) hochladen oder Text einfügen, Lernziele als Checkboxen auswählen, Kontext-basierte Fragen generieren (5ct Budget-Limit pro Quiz)
 - Single Choice und Multiple Choice pro Frage konfigurierbar
 - Anzahl Antwortoptionen anpassbar (Default 4)
 - Quiz-Editor: Fragen/Antworten nachträglich bearbeiten, löschen, hinzufügen

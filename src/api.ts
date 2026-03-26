@@ -11,6 +11,8 @@ export async function generateQuiz(config: QuizConfig): Promise<Quiz> {
       questionCount: config.questionCount ?? 10,
       optionCount: config.optionCount ?? 4,
       defaultType: config.defaultType ?? 'single',
+      lsContext: config.lsContext,
+      selectedGoals: config.selectedGoals,
     }),
   })
 

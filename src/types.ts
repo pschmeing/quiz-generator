@@ -37,6 +37,8 @@ export interface QuizConfig {
   questionCount?: number
   optionCount?: number
   defaultType?: 'single' | 'multiple'
+  lsContext?: string
+  selectedGoals?: string[]
 }
 
 export interface PublishedQuiz {

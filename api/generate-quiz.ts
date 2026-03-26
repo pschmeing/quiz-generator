@@ -10,9 +10,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' })
   }
 
-  const { topic, difficulty, audience, questionCount = 10, optionCount = 4, defaultType = 'single' } = req.body ?? {}
-  if (!topic || typeof topic !== 'string') {
-    return res.status(400).json({ error: 'topic is required' })
+  const { topic, difficulty, audience, questionCount = 10, optionCount = 4, defaultType = 'single', lsContext, selectedGoals } = req.body ?? {}
+  const hasLsContext = lsContext && typeof lsContext === 'string' && lsContext.trim().length > 0
+  if (!hasLsContext && (!topic || typeof topic !== 'string')) {
+    return res.status(400).json({ error: 'topic or lsContext is required' })
+  }
+
+  // Budget guard: estimate tokens and reject if over 5ct limit
+  if (hasLsContext) {
+    const estimatedInputTokens = Math.ceil((lsContext.length + (selectedGoals?.join('\n').length ?? 0)) / 4) + 1000
+    const estimatedCost = (estimatedInputTokens * 3 + 2000 * 15) / 1_000_000
+    if (estimatedCost > 0.05) {
+      return res.status(413).json({ error: 'Zu viel Kontext — bitte weniger Text oder weniger Dateien.' })
+    }
   }
 
   const count = Math.min(30, Math.max(5, Number(questionCount) || 10))
@@ -27,6 +37,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const difficultyHint = difficulty ? ` Der Schwierigkeitsgrad soll "${difficulty}" sein.` : ''
   const audienceHint = audience ? ` Die Zielgruppe ist "${audience}".` : ''
 
+  const jsonFormat = `{ "title": "Thema", "questions": [ { "id": 1, "question": "...", "options": { ${optionsObj} }, "correct": "A", "type": "single", "explanation": "Kurze Erklärung warum diese Antwort richtig ist" } ] }`
+
+  let systemPrompt: string
+  let userMessage: string
+
+  if (hasLsContext) {
+    const topicsHint = selectedGoals?.length
+      ? `\nFokussiere die Fragen auf folgende Themenfelder:\n${selectedGoals.map(g => `- ${g}`).join('\n')}\nDie Fragen sollen inhaltlich zu diesen Themenfeldern passen und nicht nur Faktenwissen abfragen.`
+      : ''
+    systemPrompt = `Du bist ein erfahrener Lehrer am Berufskolleg. Dir liegt eine Lernsituation (LS) aus der Unterrichtsplanung vor. Erstelle genau ${count} Multiple-Choice-Aufgaben basierend auf den Inhalten dieser Lernsituation.${topicsHint} Jede Aufgabe hat genau ${options} Antwortmöglichkeiten (${optionLabels.split('').join(', ')}). ${typeInstruction}${difficultyHint} Antworte NUR mit validem JSON ohne Markdown-Blöcke: ${jsonFormat} WICHTIG: Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein Text davor oder danach. Keine Markdown-Formatierung. Kein \`\`\`json Block.`
+    userMessage = `Hier ist die Lernsituation:\n\n${lsContext}`
+  } else {
+    systemPrompt = `Du bist ein erfahrener Lehrer. Erstelle genau ${count} Multiple-Choice-Aufgaben zum angegebenen Thema. Jede Aufgabe hat genau ${options} Antwortmöglichkeiten (${optionLabels.split('').join(', ')}). ${typeInstruction} Antworte NUR mit validem JSON ohne Markdown-Blöcke: ${jsonFormat} WICHTIG: Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein Text davor oder danach. Keine Markdown-Formatierung. Kein \`\`\`json Block.`
+    userMessage = `Erstelle ein Quiz zum Thema: ${topic}.${difficultyHint}${audienceHint}`
+  }
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -37,12 +63,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 8192,
-      system:
-        `Du bist ein erfahrener Lehrer. Erstelle genau ${count} Multiple-Choice-Aufgaben zum angegebenen Thema. Jede Aufgabe hat genau ${options} Antwortmöglichkeiten (${optionLabels.split('').join(', ')}). ${typeInstruction} Antworte NUR mit validem JSON ohne Markdown-Blöcke: { "title": "Thema", "questions": [ { "id": 1, "question": "...", "options": { ${optionsObj} }, "correct": "A", "type": "single", "explanation": "Kurze Erklärung warum diese Antwort richtig ist" } ] } WICHTIG: Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein Text davor oder danach. Keine Markdown-Formatierung. Kein \`\`\`json Block.`,
+      system: systemPrompt,
       messages: [
         {
           role: 'user',
-          content: `Erstelle ein Quiz zum Thema: ${topic}.${difficultyHint}${audienceHint}`,
+          content: userMessage,
         },
       ],
     }),
