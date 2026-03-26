@@ -92,7 +92,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     res.status(200).json(JSON.parse(jsonStr))
-  } catch (e) {
-    return res.status(500).json({ error: `JSON-Parse-Fehler: ${e instanceof Error ? e.message : 'unbekannt'}` })
+  } catch {
+    // JSON is broken — ask Haiku to repair it
+    try {
+      const repairResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 8192,
+          system: 'Du reparierst kaputtes JSON. Gib NUR das reparierte JSON zurueck, nichts anderes. Kein Markdown, kein Text davor oder danach.',
+          messages: [{ role: 'user', content: `Repariere dieses JSON:\n\n${jsonStr}` }],
+        }),
+      })
+      if (!repairResponse.ok) {
+        return res.status(500).json({ error: 'JSON-Reparatur fehlgeschlagen.' })
+      }
+      const repairData = await repairResponse.json()
+      const repairText = repairData.content[0].text
+      const rFirst = repairText.indexOf('{')
+      const rLast = repairText.lastIndexOf('}')
+      if (rFirst === -1 || rLast === -1) {
+        return res.status(500).json({ error: 'JSON-Reparatur fehlgeschlagen.' })
+      }
+      res.status(200).json(JSON.parse(repairText.slice(rFirst, rLast + 1)))
+    } catch (repairErr) {
+      return res.status(500).json({ error: `JSON-Reparatur fehlgeschlagen: ${repairErr instanceof Error ? repairErr.message : 'unbekannt'}` })
+    }
   }
 }
