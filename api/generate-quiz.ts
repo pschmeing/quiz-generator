@@ -36,6 +36,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const difficultyHint = difficulty ? ` Schwierigkeitsgrad: "${difficulty}".` : ''
   const audienceHint = audience ? ` Zielgruppe: "${audience}".` : ''
 
+  const optionsObj = optionLabels.split('').map(l => `"${l}": "..."`).join(', ')
+  const jsonFormat = `{ "title": "Thema", "questions": [ { "id": 1, "question": "...", "options": { ${optionsObj} }, "correct": "A", "type": "single", "explanation": "Kurze Erklaerung" } ] }`
+
   let systemPrompt: string
   let userMessage: string
 
@@ -51,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       difficultyHint,
       `Die Fragen sollen nicht nur Faktenwissen abfragen.`,
       `WICHTIG: Alle Strings im JSON muessen korrekt escaped sein. Verwende \\" fuer Anfuehrungszeichen innerhalb von Strings.`,
-      `Antworte AUSSCHLIESSLICH mit validem JSON. Das JSON beginnt sofort — kein Text, kein Markdown.`,
+      `Antworte AUSSCHLIESSLICH mit validem JSON in diesem Format: ${jsonFormat}`,
     ].filter(Boolean).join(' ')
     userMessage = `Hier ist die Lernsituation:\n\n${lsContext}`
   } else {
@@ -61,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `Jede Aufgabe hat genau ${options} Antwortmoeglichkeiten (${optionLabels.split('').join(', ')}).`,
       typeInstruction,
       `WICHTIG: Alle Strings im JSON muessen korrekt escaped sein. Verwende \\" fuer Anfuehrungszeichen innerhalb von Strings.`,
-      `Antworte AUSSCHLIESSLICH mit validem JSON. Das JSON beginnt sofort — kein Text, kein Markdown.`,
+      `Antworte AUSSCHLIESSLICH mit validem JSON in diesem Format: ${jsonFormat}`,
     ].join(' ')
     userMessage = `Erstelle ein Quiz zum Thema: ${topic}.${difficultyHint}${audienceHint}`
   }
