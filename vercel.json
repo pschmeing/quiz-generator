@@ -1,4 +1,8 @@
 {
+  "functions": {
+    "api/generate-quiz.ts": { "maxDuration": 60 },
+    "api/extract-topics.ts": { "maxDuration": 30 }
+  },
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
