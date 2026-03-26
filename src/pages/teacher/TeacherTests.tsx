@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { fetchTeacherQuizzes, fetchSessionCount, fetchSubjects, fetchClasses } from '../../db'
+import { fetchTeacherQuizzes, fetchSessionCount, fetchSubjects, fetchClasses, deleteQuiz, duplicateQuiz } from '../../db'
 import type { PublishedQuiz, QuizStatus, Subject, SchoolClass } from '../../types'
-import { Plus, FileText, Users, Calendar, Hash, BookOpen, GraduationCap } from 'lucide-react'
+import { Plus, FileText, Users, Calendar, Hash, BookOpen, GraduationCap, Trash2, Edit, Copy } from 'lucide-react'
 
-const tabs: { label: string; statuses: QuizStatus[] }[] = [
-  { label: 'Entwürfe', statuses: ['draft'] },
-  { label: 'Aktive Tests', statuses: ['published'] },
+const statusFilters: { label: string; statuses: QuizStatus[] }[] = [
+  { label: 'Alle', statuses: ['draft', 'published', 'closed', 'archived'] },
+  { label: 'Aktiv', statuses: ['published'] },
   { label: 'Abgeschlossen', statuses: ['closed'] },
+  { label: 'Entwurf', statuses: ['draft'] },
   { label: 'Archiv', statuses: ['archived'] },
 ]
 
@@ -24,7 +25,7 @@ export default function TeacherTests() {
   const navigate = useNavigate()
   const [quizzes, setQuizzes] = useState<PublishedQuiz[]>([])
   const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({})
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeFilter, setActiveFilter] = useState(0)
   const [loading, setLoading] = useState(true)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [classes, setClasses] = useState<SchoolClass[]>([])
@@ -58,17 +59,24 @@ export default function TeacherTests() {
   }, [user])
 
   const filtered = quizzes.filter((q) => {
-    if (!tabs[activeTab].statuses.includes(q.status)) return false
+    if (!statusFilters[activeFilter].statuses.includes(q.status)) return false
     if (filterSubject && q.subject_id !== filterSubject) return false
     if (filterClass && q.class_id !== filterClass) return false
     return true
   })
 
-  const emptyMessages: Record<number, string> = {
-    0: 'Keine Entwürfe vorhanden.',
-    1: 'Keine aktiven Tests.',
-    2: 'Keine abgeschlossenen Tests.',
-    3: 'Keine archivierten Tests.',
+  async function handleDeleteQuiz(e: React.MouseEvent, quizId: string) {
+    e.stopPropagation()
+    if (!confirm('Möchtest du den Test wirklich unwiderruflich löschen? Das kann nicht rückgängig gemacht werden.')) return
+    await deleteQuiz(quizId)
+    setQuizzes((prev) => prev.filter((q) => q.id !== quizId))
+  }
+
+  async function handleDuplicateQuiz(e: React.MouseEvent, quizId: string) {
+    e.stopPropagation()
+    if (!user) return
+    const copy = await duplicateQuiz(quizId, user.id)
+    setQuizzes((prev) => [copy, ...prev])
   }
 
   return (
@@ -85,19 +93,19 @@ export default function TeacherTests() {
         </Link>
       </div>
 
-      {/* Tabs */}
+      {/* Status filter */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {tabs.map((tab, i) => (
+        {statusFilters.map((sf, i) => (
           <button
-            key={tab.label}
-            onClick={() => setActiveTab(i)}
+            key={sf.label}
+            onClick={() => setActiveFilter(i)}
             className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              activeTab === i
+              activeFilter === i
                 ? 'bg-primary-600 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {tab.label}
+            {sf.label}
           </button>
         ))}
       </div>
@@ -154,59 +162,84 @@ export default function TeacherTests() {
       ) : filtered.length === 0 ? (
         <div className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-12 text-center">
           <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <p className="text-gray-500">{emptyMessages[activeTab]}</p>
+          <p className="text-gray-500">Keine Tests gefunden.</p>
         </div>
       ) : (
         <div className="grid gap-4">
           {filtered.map((quiz) => {
             const cfg = statusConfig[quiz.status]
             return (
-              <button
+              <div
                 key={quiz.id}
                 onClick={() => navigate(`/teacher/quiz/${quiz.id}`)}
-                className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-4 sm:p-5 text-left hover:shadow-xl transition-shadow w-full overflow-hidden"
+                className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-4 sm:p-5 text-left hover:shadow-xl transition-shadow w-full overflow-hidden cursor-pointer"
               >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 break-words">
-                      {quiz.title}
-                    </h3>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${cfg.classes}`}>
-                      {cfg.label}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
-                      <span className="inline-flex items-center gap-1.5">
-                        <FileText className="h-4 w-4" />
-                        {quiz.questions.length} Fragen
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 break-words">
+                        {quiz.title}
+                      </h3>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${cfg.classes}`}>
+                        {cfg.label}
                       </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Hash className="h-4 w-4" />
-                        <span className="font-mono">{quiz.access_code}</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(quiz.created_at).toLocaleDateString('de-DE')}
-                      </span>
-                      {quiz.subject && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 text-blue-700 px-2 py-0.5 text-xs font-medium">
-                          {quiz.subject.name}
-                        </span>
-                      )}
-                      {quiz.class && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 text-purple-700 px-2 py-0.5 text-xs font-medium">
-                          {quiz.class.name}
-                        </span>
-                      )}
-                      {quiz.status === 'published' && sessionCounts[quiz.id] !== undefined && (
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
                         <span className="inline-flex items-center gap-1.5">
-                          <Users className="h-4 w-4" />
-                          {sessionCounts[quiz.id]} Teilnehmer
+                          <FileText className="h-4 w-4" />
+                          {quiz.questions.length} Fragen
                         </span>
-                      )}
+                        <span className="inline-flex items-center gap-1.5">
+                          <Hash className="h-4 w-4" />
+                          <span className="font-mono">{quiz.access_code}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Calendar className="h-4 w-4" />
+                          {new Date(quiz.created_at).toLocaleDateString('de-DE')}
+                        </span>
+                        {quiz.subject && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 text-blue-700 px-2 py-0.5 text-xs font-medium">
+                            {quiz.subject.name}
+                          </span>
+                        )}
+                        {quiz.class && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 text-purple-700 px-2 py-0.5 text-xs font-medium">
+                            {quiz.class.name}
+                          </span>
+                        )}
+                        {quiz.status === 'published' && sessionCounts[quiz.id] !== undefined && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Users className="h-4 w-4" />
+                            {sessionCounts[quiz.id]} Teilnehmer
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/teacher/quiz/${quiz.id}/edit`) }}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                      title="Bearbeiten"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDuplicateQuiz(e, quiz.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                      title="Duplizieren"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteQuiz(e, quiz.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      title="Löschen"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>

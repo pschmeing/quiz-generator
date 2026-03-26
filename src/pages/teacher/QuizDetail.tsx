@@ -18,6 +18,7 @@ import {
   Users,
   BarChart3,
   Copy,
+  Link as LinkIcon,
   Archive,
   Trash2,
   Share2,
@@ -286,7 +287,7 @@ export default function QuizDetail() {
               onClick={handleCopyLink}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <Copy className="h-4 w-4" />
+              <LinkIcon className="h-4 w-4" />
               {copied ? 'Kopiert!' : 'Beitrittslink kopieren'}
             </button>
             <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-mono text-gray-700">
@@ -345,14 +346,6 @@ export default function QuizDetail() {
             >
               Veröffentlichen
             </button>
-            <button
-              onClick={handleDelete}
-              disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-              Löschen
-            </button>
           </>
         )}
         {quiz.status === 'archived' && (
@@ -371,7 +364,7 @@ export default function QuizDetail() {
           className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
         >
           <Copy className="h-4 w-4" />
-          Kopieren
+          Duplizieren
         </button>
         <button
           onClick={handleShare}
@@ -379,6 +372,14 @@ export default function QuizDetail() {
         >
           <Share2 className="h-4 w-4" />
           Teilen
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={actionLoading}
+          className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
+        >
+          <Trash2 className="h-4 w-4" />
+          Löschen
         </button>
       </div>
 
