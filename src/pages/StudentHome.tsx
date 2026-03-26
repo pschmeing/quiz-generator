@@ -44,7 +44,7 @@ export default function StudentHome() {
             <GraduationCap className="w-8 h-8" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
-            teach-ai quizzer
+            teach-ai:quizzer
           </h1>
           <p className="text-gray-500 text-lg">
             {user ? `Hallo, ${teacher?.display_name || user.email?.split('@')[0]}!` : 'Erstelle und teile Tests mit KI'}
