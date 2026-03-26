@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { fetchTeacherQuizzes, fetchSessionCount, fetchSubjects, fetchClasses, deleteQuiz, duplicateQuiz } from '../../db'
 import type { PublishedQuiz, QuizStatus, Subject, SchoolClass } from '../../types'
-import { Plus, FileText, Users, Calendar, Hash, BookOpen, GraduationCap, Trash2, Edit, Copy } from 'lucide-react'
+import { Plus, FileText, Users, Calendar, Hash, BookOpen, GraduationCap, Trash2, Edit, Copy, Share2, Link as LinkIcon } from 'lucide-react'
 
 const statusFilters: { label: string; statuses: QuizStatus[] }[] = [
   { label: 'Alle', statuses: ['draft', 'published', 'closed', 'archived'] },
@@ -77,6 +77,22 @@ export default function TeacherTests() {
     if (!user) return
     const copy = await duplicateQuiz(quizId, user.id)
     setQuizzes((prev) => [copy, ...prev])
+  }
+
+  function handleCopyLink(e: React.MouseEvent, accessCode: string) {
+    e.stopPropagation()
+    const url = `${window.location.origin}/join/${accessCode}`
+    navigator.clipboard.writeText(url)
+  }
+
+  function handleShareQuiz(e: React.MouseEvent, quiz: PublishedQuiz) {
+    e.stopPropagation()
+    const url = `${window.location.origin}/join/${quiz.access_code}`
+    if (navigator.share) {
+      navigator.share({ title: quiz.title, url })
+    } else {
+      navigator.clipboard.writeText(url)
+    }
   }
 
   return (
@@ -229,6 +245,20 @@ export default function TeacherTests() {
                       title="Duplizieren"
                     >
                       <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleCopyLink(e, quiz.access_code)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                      title="Beitrittslink kopieren"
+                    >
+                      <LinkIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleShareQuiz(e, quiz)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                      title="Teilen"
+                    >
+                      <Share2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={(e) => handleDeleteQuiz(e, quiz.id)}

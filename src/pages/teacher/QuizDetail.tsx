@@ -30,6 +30,7 @@ import {
   ChevronUp,
   CheckCircle,
   XCircle,
+  Hash,
 } from 'lucide-react'
 
 const statusConfig = {
@@ -47,6 +48,7 @@ export default function QuizDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
   const [expandedSession, setExpandedSession] = useState<string | null>(null)
   const { user } = useAuth()
 
@@ -163,6 +165,12 @@ export default function QuizDetail() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function handleCopyCode() {
+    navigator.clipboard.writeText(quiz!.access_code)
+    setCodeCopied(true)
+    setTimeout(() => setCodeCopied(false), 2000)
+  }
+
   function handleShare() {
     const url = `${window.location.origin}/join/${quiz!.access_code}`
     if (navigator.share) {
@@ -205,7 +213,7 @@ export default function QuizDetail() {
       </Link>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{quiz.title}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -224,13 +232,39 @@ export default function QuizDetail() {
             )}
           </div>
         </div>
-        <Link
-          to={`/teacher/quiz/${id}/edit`}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shrink-0"
-        >
-          <Edit className="h-4 w-4" />
-          Bearbeiten
-        </Link>
+        {/* Icon actions: Bearbeiten, Duplizieren, Löschen, Teilen */}
+        <div className="flex items-center gap-1 shrink-0">
+          <Link
+            to={`/teacher/quiz/${id}/edit`}
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            title="Bearbeiten"
+          >
+            <Edit className="h-5 w-5" />
+          </Link>
+          <button
+            onClick={handleDuplicate}
+            disabled={actionLoading}
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+            title="Duplizieren"
+          >
+            <Copy className="h-5 w-5" />
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={actionLoading}
+            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+            title="Löschen"
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            title="Teilen"
+          >
+            <Share2 className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {/* Stats cards */}
@@ -263,7 +297,7 @@ export default function QuizDetail() {
         </div>
       )}
 
-      {/* Action buttons */}
+      {/* Action buttons — text buttons left */}
       <div className="flex flex-wrap gap-2 mb-8">
         {quiz.status === 'published' && (
           <>
@@ -276,23 +310,20 @@ export default function QuizDetail() {
               Zurück zu Entwurf
             </button>
             <button
-              onClick={handleClose}
-              disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-warning bg-amber-50 px-3 py-2 text-xs sm:text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors"
-            >
-              <Lock className="h-4 w-4" />
-              Test schließen
-            </button>
-            <button
               onClick={handleCopyLink}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <LinkIcon className="h-4 w-4" />
               {copied ? 'Kopiert!' : 'Beitrittslink kopieren'}
             </button>
-            <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-mono text-gray-700">
-              {quiz.access_code}
-            </span>
+            <button
+              onClick={handleCopyCode}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <Hash className="h-4 w-4" />
+              <span className="font-mono">{codeCopied ? 'Kopiert!' : quiz.access_code}</span>
+              <Copy className="h-3.5 w-3.5 text-gray-400" />
+            </button>
           </>
         )}
         {quiz.status === 'closed' && (
@@ -332,13 +363,6 @@ export default function QuizDetail() {
         )}
         {quiz.status === 'draft' && (
           <>
-            <Link
-              to={`/teacher/quiz/${id}/edit`}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Edit className="h-4 w-4" />
-              Bearbeiten
-            </Link>
             <button
               onClick={handlePublish}
               disabled={actionLoading}
@@ -358,36 +382,24 @@ export default function QuizDetail() {
             Ähnlichen Test erstellen
           </Link>
         )}
-        <button
-          onClick={handleDuplicate}
-          disabled={actionLoading}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-        >
-          <Copy className="h-4 w-4" />
-          Duplizieren
-        </button>
-        <button
-          onClick={handleShare}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <Share2 className="h-4 w-4" />
-          Teilen
-        </button>
-        <button
-          onClick={handleDelete}
-          disabled={actionLoading}
-          className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
-        >
-          <Trash2 className="h-4 w-4" />
-          Löschen
-        </button>
       </div>
 
       {/* Results */}
       {(quiz.status === 'published' || quiz.status === 'closed') && sessions.length > 0 && (
         <div className="bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden">
-          <div className="px-4 sm:px-5 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Ergebnisse</h2>
+            {quiz.status === 'published' && (
+              <button
+                onClick={handleClose}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-2 rounded-lg border border-warning bg-amber-50 px-3 py-1.5 text-xs sm:text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+              >
+                <Lock className="h-4 w-4" />
+                <span className="hidden sm:inline">Test schließen</span>
+                <span className="sm:hidden">Schließen</span>
+              </button>
+            )}
           </div>
           <div className="divide-y divide-gray-100">
             {sessions
