@@ -28,31 +28,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const count = Math.min(30, Math.max(5, Number(questionCount) || 10))
   const options = Math.min(6, Math.max(2, Number(optionCount) || 4))
   const optionLabels = 'ABCDEF'.slice(0, options)
-  const optionsObj = optionLabels.split('').map(l => `"${l}": "..."`).join(', ')
 
   const typeInstruction = defaultType === 'multiple'
-    ? 'Bei jeder Frage können MEHRERE Antworten richtig sein. Das Feld "correct" ist ein Array wie ["A","C"]. Das Feld "type" ist "multiple".'
-    : 'Bei jeder Frage ist GENAU EINE Antwort richtig. Das Feld "correct" ist ein einzelner Buchstabe wie "A". Das Feld "type" ist "single".'
+    ? 'Bei jeder Frage koennen MEHRERE Antworten richtig sein. "correct" ist ein Array wie ["A","C"]. "type" ist "multiple".'
+    : 'Bei jeder Frage ist GENAU EINE Antwort richtig. "correct" ist ein einzelner Buchstabe wie "A". "type" ist "single".'
 
-  const difficultyHint = difficulty ? ` Der Schwierigkeitsgrad soll "${difficulty}" sein.` : ''
-  const audienceHint = audience ? ` Die Zielgruppe ist "${audience}".` : ''
-
-  const jsonFormat = `{ "title": "Thema", "questions": [ { "id": 1, "question": "...", "options": { ${optionsObj} }, "correct": "A", "type": "single", "explanation": "Kurze Erklärung warum diese Antwort richtig ist" } ] }`
+  const difficultyHint = difficulty ? ` Schwierigkeitsgrad: "${difficulty}".` : ''
+  const audienceHint = audience ? ` Zielgruppe: "${audience}".` : ''
 
   let systemPrompt: string
   let userMessage: string
 
   if (hasLsContext) {
     const topicsHint = selectedGoals?.length
-      ? `\nFokussiere die Fragen auf folgende Themenfelder:\n${selectedGoals.map(g => `- ${g}`).join('\n')}\nDie Fragen sollen inhaltlich zu diesen Themenfeldern passen und nicht nur Faktenwissen abfragen.`
+      ? `\nFokussiere die Fragen auf folgende Themenfelder: ${selectedGoals.join(', ')}.`
       : ''
-    systemPrompt = `Du bist ein erfahrener Lehrer am Berufskolleg. Dir liegt eine Lernsituation (LS) aus der Unterrichtsplanung vor. Erstelle genau ${count} Multiple-Choice-Aufgaben basierend auf den Inhalten dieser Lernsituation.${topicsHint} Jede Aufgabe hat genau ${options} Antwortmöglichkeiten (${optionLabels.split('').join(', ')}). ${typeInstruction}${difficultyHint} Antworte NUR mit validem JSON ohne Markdown-Blöcke: ${jsonFormat} WICHTIG: Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein Text davor oder danach. Keine Markdown-Formatierung. Kein \`\`\`json Block.`
+    systemPrompt = [
+      `Du bist ein erfahrener Lehrer am Berufskolleg.`,
+      `Erstelle genau ${count} Multiple-Choice-Aufgaben basierend auf der Lernsituation.${topicsHint}`,
+      `Jede Aufgabe hat genau ${options} Antwortmoeglichkeiten (${optionLabels.split('').join(', ')}).`,
+      typeInstruction,
+      difficultyHint,
+      `Die Fragen sollen nicht nur Faktenwissen abfragen.`,
+      `WICHTIG: Alle Strings im JSON muessen korrekt escaped sein. Verwende \\" fuer Anfuehrungszeichen innerhalb von Strings.`,
+      `Antworte AUSSCHLIESSLICH mit validem JSON. Das JSON beginnt sofort — kein Text, kein Markdown.`,
+    ].filter(Boolean).join(' ')
     userMessage = `Hier ist die Lernsituation:\n\n${lsContext}`
   } else {
-    systemPrompt = `Du bist ein erfahrener Lehrer. Erstelle genau ${count} Multiple-Choice-Aufgaben zum angegebenen Thema. Jede Aufgabe hat genau ${options} Antwortmöglichkeiten (${optionLabels.split('').join(', ')}). ${typeInstruction} Antworte NUR mit validem JSON ohne Markdown-Blöcke: ${jsonFormat} WICHTIG: Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein Text davor oder danach. Keine Markdown-Formatierung. Kein \`\`\`json Block.`
+    systemPrompt = [
+      `Du bist ein erfahrener Lehrer.`,
+      `Erstelle genau ${count} Multiple-Choice-Aufgaben zum angegebenen Thema.`,
+      `Jede Aufgabe hat genau ${options} Antwortmoeglichkeiten (${optionLabels.split('').join(', ')}).`,
+      typeInstruction,
+      `WICHTIG: Alle Strings im JSON muessen korrekt escaped sein. Verwende \\" fuer Anfuehrungszeichen innerhalb von Strings.`,
+      `Antworte AUSSCHLIESSLICH mit validem JSON. Das JSON beginnt sofort — kein Text, kein Markdown.`,
+    ].join(' ')
     userMessage = `Erstelle ein Quiz zum Thema: ${topic}.${difficultyHint}${audienceHint}`
   }
 
+  // Use prefill to force JSON output
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -65,10 +79,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       max_tokens: 8192,
       system: systemPrompt,
       messages: [
-        {
-          role: 'user',
-          content: userMessage,
-        },
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: '{"title":' },
       ],
     }),
   })
@@ -79,49 +91,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const data = await response.json()
-  const content = data.content[0].text
+  const rawText = data.content[0].text
 
-  // Extract JSON robustly: find the first { and last }
-  const firstBrace = content.indexOf('{')
-  const lastBrace = content.lastIndexOf('}')
+  // Reconstruct full JSON (prefill + response)
+  const fullJson = '{"title":' + rawText
+
+  // Extract JSON: find matching braces
+  const firstBrace = fullJson.indexOf('{')
+  const lastBrace = fullJson.lastIndexOf('}')
   if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-    return res.status(500).json({ error: 'Keine gültige JSON-Antwort vom Modell erhalten.' })
+    return res.status(500).json({ error: 'Keine gueltige JSON-Antwort vom Modell erhalten.' })
   }
 
-  const jsonStr = content.slice(firstBrace, lastBrace + 1)
+  const jsonStr = fullJson.slice(firstBrace, lastBrace + 1)
 
   try {
     res.status(200).json(JSON.parse(jsonStr))
-  } catch {
-    // JSON is broken — ask Haiku to repair it
-    try {
-      const repairResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 8192,
-          system: 'Du reparierst kaputtes JSON. Gib NUR das reparierte JSON zurueck, nichts anderes. Kein Markdown, kein Text davor oder danach.',
-          messages: [{ role: 'user', content: `Repariere dieses JSON:\n\n${jsonStr}` }],
-        }),
-      })
-      if (!repairResponse.ok) {
-        return res.status(500).json({ error: 'JSON-Reparatur fehlgeschlagen.' })
-      }
-      const repairData = await repairResponse.json()
-      const repairText = repairData.content[0].text
-      const rFirst = repairText.indexOf('{')
-      const rLast = repairText.lastIndexOf('}')
-      if (rFirst === -1 || rLast === -1) {
-        return res.status(500).json({ error: 'JSON-Reparatur fehlgeschlagen.' })
-      }
-      res.status(200).json(JSON.parse(repairText.slice(rFirst, rLast + 1)))
-    } catch (repairErr) {
-      return res.status(500).json({ error: `JSON-Reparatur fehlgeschlagen: ${repairErr instanceof Error ? repairErr.message : 'unbekannt'}` })
-    }
+  } catch (e) {
+    return res.status(500).json({
+      error: `JSON-Parse-Fehler: ${e instanceof Error ? e.message : 'unbekannt'}`,
+    })
   }
 }
