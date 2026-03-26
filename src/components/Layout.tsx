@@ -14,7 +14,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
             <GraduationCap className="w-7 h-7 text-primary-600 group-hover:text-primary-700 transition-colors" />
-            <span className="text-lg font-bold text-primary-900">Quiz Generator</span>
+            <span className="text-lg font-bold text-primary-900">teach-ai quizzer</span>
           </Link>
 
           <nav className="flex items-center gap-1 sm:gap-3">
