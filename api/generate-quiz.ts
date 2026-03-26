@@ -66,7 +66,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     userMessage = `Erstelle ein Quiz zum Thema: ${topic}.${difficultyHint}${audienceHint}`
   }
 
-  // Use prefill to force JSON output
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -80,7 +79,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       system: systemPrompt,
       messages: [
         { role: 'user', content: userMessage },
-        { role: 'assistant', content: '{"title":' },
       ],
     }),
   })
@@ -91,25 +89,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const data = await response.json()
-  const rawText = data.content[0].text
+  const content = data.content[0].text
 
-  // Reconstruct full JSON (prefill + response)
-  const fullJson = '{"title":' + rawText
-
-  // Extract JSON: find matching braces
-  const firstBrace = fullJson.indexOf('{')
-  const lastBrace = fullJson.lastIndexOf('}')
+  // Extract JSON: find first { and last }
+  const firstBrace = content.indexOf('{')
+  const lastBrace = content.lastIndexOf('}')
   if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
     return res.status(500).json({ error: 'Keine gueltige JSON-Antwort vom Modell erhalten.' })
   }
 
-  const jsonStr = fullJson.slice(firstBrace, lastBrace + 1)
+  const jsonStr = content.slice(firstBrace, lastBrace + 1)
 
   try {
     res.status(200).json(JSON.parse(jsonStr))
-  } catch (e) {
-    return res.status(500).json({
-      error: `JSON-Parse-Fehler: ${e instanceof Error ? e.message : 'unbekannt'}`,
-    })
+  } catch {
+    // JSON broken — retry once with Haiku repair
+    try {
+      const repairRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 8192,
+          system: 'Repariere das folgende kaputte JSON. Gib NUR valides JSON zurueck. Kein Text, kein Markdown.',
+          messages: [{ role: 'user', content: jsonStr }],
+        }),
+      })
+      if (!repairRes.ok) {
+        return res.status(500).json({ error: 'JSON-Reparatur fehlgeschlagen.' })
+      }
+      const repairData = await repairRes.json()
+      const repairText = repairData.content[0].text
+      const rFirst = repairText.indexOf('{')
+      const rLast = repairText.lastIndexOf('}')
+      if (rFirst === -1 || rLast === -1) {
+        return res.status(500).json({ error: 'JSON-Reparatur fehlgeschlagen.' })
+      }
+      res.status(200).json(JSON.parse(repairText.slice(rFirst, rLast + 1)))
+    } catch (e) {
+      return res.status(500).json({ error: `JSON-Reparatur fehlgeschlagen: ${e instanceof Error ? e.message : 'unbekannt'}` })
+    }
   }
 }
