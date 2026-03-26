@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 type Mode = 'student' | 'teacher'
 
 export default function Login() {
-  const { user, isTeacher, loading: authLoading, signIn, signUp, sendMagicLink } = useAuth()
+  const { user, isTeacher, loading: authLoading, profileLoading, signIn, signUp, sendMagicLink } = useAuth()
   const navigate = useNavigate()
 
   const [mode, setMode] = useState<Mode>('student')
@@ -19,13 +19,13 @@ export default function Login() {
   const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
-    if (authLoading) return
+    if (authLoading || profileLoading) return
     if (user && isTeacher) {
       navigate('/teacher')
     } else if (user) {
       navigate('/')
     }
-  }, [user, isTeacher, authLoading, navigate])
+  }, [user, isTeacher, authLoading, profileLoading, navigate])
 
   function resetMessages() {
     setError(null)

@@ -15,6 +15,7 @@ interface AuthState {
   session: Session | null
   teacher: TeacherProfile | null
   loading: boolean
+  profileLoading: boolean
   isTeacher: boolean
   isAdmin: boolean
   isApproved: boolean
@@ -31,14 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [teacher, setTeacher] = useState<TeacherProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   async function fetchTeacherProfile(userId: string) {
+    setProfileLoading(true)
     const { data } = await supabase
       .from('teachers')
       .select('*')
       .eq('id', userId)
       .single()
     setTeacher(data as TeacherProfile | null)
+    setProfileLoading(false)
   }
 
   useEffect(() => {
@@ -97,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, teacher, loading,
+      user, session, teacher, loading, profileLoading,
       isTeacher, isAdmin, isApproved,
       signIn, signUp, signOut, sendMagicLink,
     }}>
