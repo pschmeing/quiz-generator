@@ -81,14 +81,14 @@ export default function Login() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-cyan-50 flex items-center justify-center">
+      <div className="min-h-screen bg-primary-50 flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-cyan-50 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-primary-50 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-8">
         {/* Header */}
         <h1 className="text-2xl font-bold text-primary-900 text-center mb-2">
@@ -99,7 +99,7 @@ export default function Login() {
         </p>
 
         {/* Mode Toggle */}
-        <div className="flex bg-cyan-100 rounded-full p-1 mb-6">
+        <div className="flex bg-primary-100 rounded-full p-1 mb-6">
           <button
             type="button"
             onClick={() => {
