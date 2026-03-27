@@ -9,6 +9,7 @@ import {
   publishDraft,
   revertToDraft,
   duplicateQuiz,
+  updateQuiz,
 } from '../../db'
 import type { PublishedQuiz, QuizSession, Violation } from '../../types'
 import { useAuth } from '../../contexts/AuthContext'
@@ -231,12 +232,23 @@ export default function QuizDetail() {
                 {quiz.class.name}
               </span>
             )}
-            {quiz.test_mode && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-0.5 text-xs font-medium">
-                <ShieldAlert className="h-3 w-3" />
-                Prüfungsmodus
-              </span>
-            )}
+            <button
+              onClick={async () => {
+                if (!id) return
+                const newVal = !quiz.test_mode
+                await updateQuiz(id, { test_mode: newVal })
+                setQuiz({ ...quiz, test_mode: newVal })
+              }}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
+                quiz.test_mode
+                  ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+              title={quiz.test_mode ? 'Prüfungsmodus deaktivieren' : 'Prüfungsmodus aktivieren'}
+            >
+              <ShieldAlert className="h-3 w-3" />
+              Prüfungsmodus {quiz.test_mode ? 'an' : 'aus'}
+            </button>
           </div>
         </div>
         {/* Icon actions: Bearbeiten, Duplizieren, Löschen, Teilen */}
