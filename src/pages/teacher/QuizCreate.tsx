@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { generateQuiz } from '../../api'
 import { saveQuizDraft, publishQuiz, countTodayQuizzes, fetchSubjects, fetchClasses } from '../../db'
 import type { QuizConfig, Quiz, Subject, SchoolClass } from '../../types'
-import { Sparkles, Save, Send, Edit, Upload, X, FileText, Loader2 } from 'lucide-react'
+import { Sparkles, Save, Send, Edit, Upload, X, FileText, Loader2, ShieldAlert } from 'lucide-react'
 import { extractTopics, type ParsedTopic } from '../../utils/parseLsMarkdown'
 
 export default function QuizCreate() {
@@ -26,6 +26,7 @@ export default function QuizCreate() {
   const [selectedSubject, setSelectedSubject] = useState<string>('')
   const [selectedClass, setSelectedClass] = useState<string>('')
   const [customTitle, setCustomTitle] = useState('')
+  const [testMode, setTestMode] = useState(false)
 
   // LS tab state
   const [activeTab, setActiveTab] = useState<'topic' | 'ls'>('topic')
@@ -176,7 +177,7 @@ export default function QuizCreate() {
     if (!quiz || !user) return
     setSaving(true)
     try {
-      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null }
+      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null, test_mode: testMode }
       const saved = await saveQuizDraft(quiz, user.id, opts)
       navigate(`/teacher/quiz/${saved.id}`)
     } catch (err) {
@@ -190,7 +191,7 @@ export default function QuizCreate() {
     if (!quiz || !user) return
     setSaving(true)
     try {
-      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null }
+      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null, test_mode: testMode }
       const saved = await saveQuizDraft(quiz, user.id, opts)
       navigate(`/teacher/quiz/${saved.id}/edit`)
     } catch (err) {
@@ -204,7 +205,7 @@ export default function QuizCreate() {
     if (!quiz || !user) return
     setSaving(true)
     try {
-      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null }
+      const opts = { subject_id: selectedSubject || null, class_id: selectedClass || null, test_mode: testMode }
       const published = await publishQuiz(quiz, user.id, opts)
       navigate(`/teacher/quiz/${published.id}`)
     } catch (err) {
@@ -679,6 +680,32 @@ export default function QuizCreate() {
                 )}
               </div>
             )}
+
+            {/* Test mode toggle */}
+            <div className="flex items-center gap-3 py-3 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setTestMode(!testMode)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  testMode ? 'bg-amber-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    testMode ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <div className="flex items-center gap-2">
+                <ShieldAlert className={`h-4 w-4 ${testMode ? 'text-amber-600' : 'text-gray-400'}`} />
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Prüfungsmodus</span>
+                  <p className="text-xs text-gray-500">
+                    Tab-Wechsel, Fokusverlust und Copy/Paste werden erkannt und protokolliert
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="space-y-4">
               {quiz.questions.map((q, i) => (

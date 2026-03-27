@@ -10,7 +10,7 @@ import {
   revertToDraft,
   duplicateQuiz,
 } from '../../db'
-import type { PublishedQuiz, QuizSession } from '../../types'
+import type { PublishedQuiz, QuizSession, Violation } from '../../types'
 import { useAuth } from '../../contexts/AuthContext'
 import {
   ArrowLeft,
@@ -31,6 +31,7 @@ import {
   CheckCircle,
   XCircle,
   Hash,
+  ShieldAlert,
 } from 'lucide-react'
 
 const statusConfig = {
@@ -228,6 +229,12 @@ export default function QuizDetail() {
             {quiz.class && (
               <span className="inline-flex items-center rounded-full bg-purple-50 text-purple-700 px-2.5 py-0.5 text-xs font-medium">
                 {quiz.class.name}
+              </span>
+            )}
+            {quiz.test_mode && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-0.5 text-xs font-medium">
+                <ShieldAlert className="h-3 w-3" />
+                Prüfungsmodus
               </span>
             )}
           </div>
@@ -432,6 +439,12 @@ export default function QuizDetail() {
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${pctColor}`}>
                         {pct}%
                       </span>
+                      {session.violations && session.violations.length > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-medium">
+                          <ShieldAlert className="h-3 w-3" />
+                          {session.violations.length}
+                        </span>
+                      )}
                       <span className="hidden sm:inline text-sm text-gray-500">
                         {new Date(session.completed_at).toLocaleString('de-DE')}
                       </span>
@@ -441,6 +454,39 @@ export default function QuizDetail() {
                     </button>
                     {isExpanded && session.answers && (
                       <div className="px-4 sm:px-5 pb-4 pt-1 bg-gray-50/50 border-t border-gray-100">
+                        {/* Violations */}
+                        {session.violations && session.violations.length > 0 && (
+                          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                            <p className="text-sm font-medium text-amber-800 mb-2 flex items-center gap-1.5">
+                              <ShieldAlert className="h-4 w-4" />
+                              {session.violations.length} Auffälligkeit{session.violations.length !== 1 ? 'en' : ''}
+                            </p>
+                            <div className="space-y-1">
+                              {(session.violations as Violation[]).map((v, vi) => {
+                                const labels: Record<string, string> = {
+                                  tab_hidden: 'Tab gewechselt',
+                                  fullscreen_exit: 'Vollbild verlassen',
+                                  focus_lost: 'Fokusverlust',
+                                  resize: 'Fenster verkleinert',
+                                  copy_paste: 'Copy/Paste-Versuch',
+                                }
+                                return (
+                                  <p key={vi} className="text-xs text-amber-700 flex items-center gap-2">
+                                    <span className="font-medium">{labels[v.type] ?? v.type}</span>
+                                    <span className="text-amber-500">
+                                      {new Date(v.timestamp).toLocaleTimeString('de-DE')}
+                                    </span>
+                                    {v.duration_ms != null && (
+                                      <span className="text-amber-500">
+                                        ({Math.round(v.duration_ms / 1000)}s)
+                                      </span>
+                                    )}
+                                  </p>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
                         <div className="space-y-2">
                           {session.answers.map((answer, ai) => {
                             const question = quiz!.questions[ai]

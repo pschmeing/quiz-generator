@@ -53,6 +53,7 @@ export interface PublishedQuiz {
   class_id?: string | null
   subject?: Subject | null
   class?: SchoolClass | null
+  test_mode?: boolean
 }
 
 export interface QuizSession {
@@ -63,6 +64,7 @@ export interface QuizSession {
   score: number
   total: number
   answers: StudentAnswer[]
+  violations?: Violation[]
   completed_at: string
 }
 
@@ -71,4 +73,12 @@ export interface StudentAnswer {
   selected: string | string[]
   correct: string | string[]
   is_correct: boolean
+}
+
+export type ViolationType = 'tab_hidden' | 'fullscreen_exit' | 'focus_lost' | 'resize' | 'copy_paste'
+
+export interface Violation {
+  type: ViolationType
+  timestamp: string
+  duration_ms?: number
 }

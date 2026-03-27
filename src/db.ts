@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Quiz, PublishedQuiz, QuizSession, QuizStatus, StudentAnswer, Subject, SchoolClass } from './types'
+import type { Quiz, PublishedQuiz, QuizSession, QuizStatus, StudentAnswer, Violation, Subject, SchoolClass } from './types'
 
 function generateAccessCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -12,7 +12,7 @@ function generateAccessCode(): string {
 
 // --- Quiz CRUD ---
 
-export async function saveQuizDraft(quiz: Quiz, userId: string, opts?: { subject_id?: string | null; class_id?: string | null }): Promise<PublishedQuiz> {
+export async function saveQuizDraft(quiz: Quiz, userId: string, opts?: { subject_id?: string | null; class_id?: string | null; test_mode?: boolean }): Promise<PublishedQuiz> {
   const accessCode = generateAccessCode()
   const { data, error } = await supabase
     .from('quizzes')
@@ -24,6 +24,7 @@ export async function saveQuizDraft(quiz: Quiz, userId: string, opts?: { subject
       created_by: userId,
       subject_id: opts?.subject_id ?? null,
       class_id: opts?.class_id ?? null,
+      test_mode: opts?.test_mode ?? false,
     })
     .select()
     .single()
@@ -32,7 +33,7 @@ export async function saveQuizDraft(quiz: Quiz, userId: string, opts?: { subject
   return data as PublishedQuiz
 }
 
-export async function publishQuiz(quiz: Quiz, userId: string, opts?: { subject_id?: string | null; class_id?: string | null }): Promise<PublishedQuiz> {
+export async function publishQuiz(quiz: Quiz, userId: string, opts?: { subject_id?: string | null; class_id?: string | null; test_mode?: boolean }): Promise<PublishedQuiz> {
   const accessCode = generateAccessCode()
   const { data, error } = await supabase
     .from('quizzes')
@@ -44,6 +45,7 @@ export async function publishQuiz(quiz: Quiz, userId: string, opts?: { subject_i
       created_by: userId,
       subject_id: opts?.subject_id ?? null,
       class_id: opts?.class_id ?? null,
+      test_mode: opts?.test_mode ?? false,
     })
     .select()
     .single()
@@ -52,7 +54,7 @@ export async function publishQuiz(quiz: Quiz, userId: string, opts?: { subject_i
   return data as PublishedQuiz
 }
 
-export async function updateQuiz(quizId: string, updates: Partial<Pick<PublishedQuiz, 'title' | 'questions' | 'status' | 'subject_id' | 'class_id'>>): Promise<void> {
+export async function updateQuiz(quizId: string, updates: Partial<Pick<PublishedQuiz, 'title' | 'questions' | 'status' | 'subject_id' | 'class_id' | 'test_mode'>>): Promise<void> {
   const { error } = await supabase
     .from('quizzes')
     .update(updates)
@@ -135,6 +137,7 @@ export async function submitQuizSession(
   score: number,
   total: number,
   studentEmail?: string,
+  violations?: Violation[],
 ): Promise<QuizSession> {
   const { data, error } = await supabase
     .from('quiz_sessions')
@@ -145,6 +148,7 @@ export async function submitQuizSession(
       score,
       total,
       answers,
+      ...(violations && violations.length > 0 ? { violations } : {}),
     })
     .select()
     .single()

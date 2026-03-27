@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchQuizById, submitQuizSession } from '../db'
 import { useAuth } from '../contexts/AuthContext'
-import { Keyboard, Mail, Lock, ArrowRight, ChevronLeft, User } from 'lucide-react'
+import { useTestMode } from '../hooks/useTestMode'
+import { Keyboard, Mail, Lock, ArrowRight, ChevronLeft, User, ShieldAlert } from 'lucide-react'
 import type { PublishedQuiz, QuizQuestion, StudentAnswer } from '../types'
 
 export default function QuizTake() {
@@ -28,6 +29,7 @@ export default function QuizTake() {
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [authSuccess, setAuthSuccess] = useState<string | null>(null)
+  const [testModeReady, setTestModeReady] = useState(false)
 
   // Determine student name from auth
   useEffect(() => {
@@ -93,6 +95,18 @@ export default function QuizTake() {
     }
     setAuthLoading(false)
   }
+
+  const isTestMode = quiz?.test_mode === true
+  const { violations, enterFullscreen, showWarning } = useTestMode({
+    enabled: isTestMode && nameConfirmed && testModeReady,
+  })
+
+  // Enter fullscreen when test mode starts
+  useEffect(() => {
+    if (isTestMode && nameConfirmed && !testModeReady) {
+      enterFullscreen().then(() => setTestModeReady(true))
+    }
+  }, [isTestMode, nameConfirmed, testModeReady, enterFullscreen])
 
   const currentQuestion: QuizQuestion | undefined = quiz?.questions[currentIndex]
   const isLastQuestion = quiz ? currentIndex === quiz.questions.length - 1 : false
@@ -227,7 +241,8 @@ export default function QuizTake() {
         studentAnswers,
         score,
         total,
-        user?.email
+        user?.email,
+        isTestMode ? violations : undefined
       )
       navigate(`/quiz/${id}/results`, {
         state: { score, total, answers: studentAnswers, quiz },
@@ -439,6 +454,32 @@ export default function QuizTake() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 flex flex-col">
+      {/* Test mode warning overlay */}
+      {isTestMode && showWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4 text-center space-y-3">
+            <ShieldAlert className="h-10 w-10 text-amber-500 mx-auto" />
+            <h3 className="text-lg font-bold text-gray-900">Auffälligkeit erkannt</h3>
+            <p className="text-sm text-gray-600">Du hast den Test verlassen. Dies wurde protokolliert.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Test mode info banner */}
+      {isTestMode && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center">
+          <p className="text-xs text-amber-700 flex items-center justify-center gap-1.5">
+            <ShieldAlert className="h-3.5 w-3.5" />
+            Prüfungsmodus aktiv — Tab-Wechsel und Fokusverlust werden protokolliert
+            {violations.length > 0 && (
+              <span className="ml-2 inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-800">
+                ⚠ {violations.length}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-white/20 px-4 py-3.5">
         <div className="max-w-2xl mx-auto">
